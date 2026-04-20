@@ -12,6 +12,12 @@
     "error": "エラーが発生しました",
     "retry": "もう一度試す"
   },
+  "auth": {
+    "loginWithGoogle": "Googleでログイン",
+    "loginWithApple": "Appleでログイン",
+    "loginDescription": "同じ街の人たちとお得情報を共有しよう",
+    "terms": "ログインすることで利用規約に同意したものとみなされます"
+  },
   "home": {
     "title": "ホーム",
     "todayStats": "本日の登録情報",

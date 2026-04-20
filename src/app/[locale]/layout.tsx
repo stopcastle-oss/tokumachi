@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import { ReactNode } from "react";
+import { Providers } from "@/components/layout/Providers";
+import { Header } from "@/components/layout/Header";
+import { BottomNav } from "@/components/layout/BottomNav";
+import "@/styles/globals.css";
 
 export const metadata: Metadata = {
   title: "TokuMachi",
@@ -26,7 +30,15 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body>{children}</body>
+      <body>
+        <Providers>
+          <Header />
+          <main className="pb-20 md:pb-0">
+            {children}
+          </main>
+          <BottomNav />
+        </Providers>
+      </body>
     </html>
   );
 }
