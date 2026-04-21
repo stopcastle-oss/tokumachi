@@ -66,7 +66,6 @@ CREATE TABLE price_entries (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
-  CONSTRAINT unique_daily_entry UNIQUE (store_id, item_id, user_id, DATE(created_at AT TIME ZONE 'Asia/Tokyo')),
   CONSTRAINT valid_price CHECK (price >= 0)
 );
 
@@ -112,6 +111,9 @@ CREATE TABLE flyers (
 );
 
 -- Create indexes for common queries
+-- Functional unique index for daily entry limit (one per user/store/item per day in JST)
+CREATE UNIQUE INDEX unique_daily_entry ON price_entries(store_id, item_id, user_id, DATE(created_at AT TIME ZONE 'Asia/Tokyo'));
+
 CREATE INDEX idx_price_entries_store_id ON price_entries(store_id);
 CREATE INDEX idx_price_entries_item_id ON price_entries(item_id);
 CREATE INDEX idx_price_entries_user_id ON price_entries(user_id);

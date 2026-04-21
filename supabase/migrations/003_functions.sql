@@ -191,24 +191,37 @@ RETURNS TABLE (
   trending_items JSON,
   top_liked_entries JSON
 ) AS $$
+DECLARE
+  v_today_count BIGINT;
+  v_trending JSON;
+  v_top_liked JSON;
 BEGIN
-  RETURN QUERY
-  SELECT
-    COUNT(*)::BIGINT as today_entries_count,
-    json_agg(json_build_object(
-      'item_id', item_id,
-      'name_ja', (SELECT name_ja FROM items WHERE id = price_entries.item_id),
-      'count', COUNT(*)
-    )) FILTER (WHERE item_id IS NOT NULL) as trending_items,
-    json_agg(json_build_object(
-      'id', id,
-      'price', price,
-      'like_count', like_count,
-      'created_at', created_at
-    ) ORDER BY like_count DESC LIMIT 5) as top_liked_entries
+  SELECT COUNT(*)::BIGINT INTO v_today_count
   FROM price_entries
   WHERE status = 'active'
-    AND DATE(created_at AT TIME ZONE 'Asia/Tokyo') = CURRENT_DATE AT TIME ZONE 'Asia/Tokyo'
-  GROUP BY 1;
+    AND DATE(created_at AT TIME ZONE 'Asia/Tokyo') = CURRENT_DATE;
+
+  SELECT json_agg(row_to_json(t)) INTO v_trending
+  FROM (
+    SELECT pe.item_id, i.name_ja, COUNT(*) as count
+    FROM price_entries pe
+    JOIN items i ON i.id = pe.item_id
+    WHERE pe.status = 'active'
+      AND DATE(pe.created_at AT TIME ZONE 'Asia/Tokyo') = CURRENT_DATE
+    GROUP BY pe.item_id, i.name_ja
+    ORDER BY count DESC
+    LIMIT 5
+  ) t;
+
+  SELECT json_agg(row_to_json(t)) INTO v_top_liked
+  FROM (
+    SELECT id, price, like_count, created_at, store_id, item_id
+    FROM price_entries
+    WHERE status = 'active'
+    ORDER BY like_count DESC
+    LIMIT 5
+  ) t;
+
+  RETURN QUERY SELECT v_today_count, v_trending, v_top_liked;
 END;
 $$ LANGUAGE plpgsql;

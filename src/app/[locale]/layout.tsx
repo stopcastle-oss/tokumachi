@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { ReactNode } from "react";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages } from "next-intl/server";
 import { Providers } from "@/components/layout/Providers";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -21,23 +23,27 @@ interface LayoutProps {
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
   params: { locale },
 }: LayoutProps) {
+  const messages = await getMessages();
+
   return (
     <html lang={locale}>
       <head>
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body>
-        <Providers>
-          <Header />
-          <main className="pb-20 md:pb-0">
-            {children}
-          </main>
-          <BottomNav />
-        </Providers>
+        <NextIntlClientProvider messages={messages}>
+          <Providers>
+            <Header />
+            <main className="pb-20 md:pb-0">
+              {children}
+            </main>
+            <BottomNav />
+          </Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );
