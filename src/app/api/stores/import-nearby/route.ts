@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   }
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
-  const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=supermarket&key=${apiKey}`;
+  const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=supermarket&language=ja&key=${apiKey}`;
 
   const res = await fetch(url);
   const data = await res.json();
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
   const { error } = await supabase
     .from('stores')
-    .upsert(stores, { onConflict: 'id', ignoreDuplicates: true });
+    .upsert(stores, { onConflict: 'id' });
 
   if (error) {
     console.error('Import error:', error);
