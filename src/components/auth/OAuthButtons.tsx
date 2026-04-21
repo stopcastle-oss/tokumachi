@@ -77,14 +77,14 @@ export const OAuthButtons = () => {
       {/* Divider */}
       <div className="relative my-1">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-[#30363d]" />
+          <div className="w-full border-t border-gray-200" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-[#161b22] px-3 text-[#7d8590]">または</span>
+          <span className="bg-white px-3 text-gray-400">または</span>
         </div>
       </div>
 
-      <p className="text-center text-[#7d8590] text-sm py-1">
+      <p className="text-center text-gray-400 text-sm py-1">
         他のログイン方法は近日公開予定
       </p>
     </div>
