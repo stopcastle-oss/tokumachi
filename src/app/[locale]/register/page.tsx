@@ -48,6 +48,7 @@ export default function RegisterPage() {
   const [nearbyStores, setNearbyStores] = useState<StoreResult[]>([]);
   const [selectedStore, setSelectedStore] = useState<StoreResult | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState(false);
   const userMarkerRef = useRef<google.maps.Marker | null>(null);
 
   // Item step
@@ -109,7 +110,11 @@ export default function RegisterPage() {
             zIndex: 999,
           });
         },
-        () => setUserLocation(defaultCenter),
+        (err) => {
+          console.warn('Geolocation error:', err.code, err.message);
+          setLocationError(true);
+          setUserLocation(defaultCenter);
+        },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     };
@@ -253,9 +258,34 @@ export default function RegisterPage() {
           {/* Map */}
           <div className="relative flex-1">
             <div ref={mapRef} className="w-full h-full" />
+            {locationError && (
+              <div className="absolute top-3 left-3 right-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 flex items-center gap-2 shadow-sm z-10">
+                <span className="text-orange-500">📍</span>
+                <p className="text-sm text-orange-700 flex-1">位置情報を取得できませんでした。東京を表示中。</p>
+                <button
+                  onClick={() => {
+                    setLocationError(false);
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                        setUserLocation(loc);
+                        mapInstanceRef.current?.setCenter(loc);
+                        mapInstanceRef.current?.setZoom(15);
+                      },
+                      () => setLocationError(true),
+                      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                    );
+                  }}
+                  className="text-xs text-orange-600 font-medium underline shrink-0"
+                >
+                  再試行
+                </button>
+              </div>
+            )}
             {/* Current location button */}
             <button
               onClick={() => {
+                setLocationError(false);
                 navigator.geolocation.getCurrentPosition(
                   (pos) => {
                     const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -277,7 +307,10 @@ export default function RegisterPage() {
                       zIndex: 999,
                     });
                   },
-                  undefined,
+                  (err) => {
+                    console.warn('Geolocation retry error:', err.code);
+                    setLocationError(true);
+                  },
                   { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
               }}
