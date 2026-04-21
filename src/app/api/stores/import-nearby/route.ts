@@ -32,8 +32,7 @@ export async function POST(request: Request) {
     address: place.vicinity,
     latitude: place.geometry.location.lat,
     longitude: place.geometry.location.lng,
-    geom: `SRID=4326;POINT(${place.geometry.location.lng} ${place.geometry.location.lat})`,
-    created_by: '00000000-0000-0000-0000-000000000000',
+    created_by: null,
   }));
 
   const { error } = await supabase
