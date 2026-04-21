@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 
@@ -21,18 +21,33 @@ interface ItemResult {
 
 type Step = 'store' | 'item' | 'price' | 'done';
 
+// Custom supermarket marker SVG (cart icon, blue pin)
+const STORE_MARKER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44">
+  <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 26 18 26s18-12.5 18-26C36 8.06 27.94 0 18 0z" fill="#3B82F6" stroke="white" stroke-width="1.5"/>
+  <text x="18" y="24" text-anchor="middle" font-size="16" fill="white">🛒</text>
+</svg>`;
+
+const STORE_MARKER_SELECTED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="42" height="52" viewBox="0 0 42 52">
+  <path d="M21 0C9.4 0 0 9.4 0 21c0 15.75 21 31 21 31s21-15.25 21-31C42 9.4 32.6 0 21 0z" fill="#EF4444" stroke="white" stroke-width="2"/>
+  <text x="21" y="28" text-anchor="middle" font-size="18" fill="white">🛒</text>
+</svg>`;
+
+const svgToUrl = (svg: string) =>
+  `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+
 export default function RegisterPage() {
   useProtectedRoute();
   const router = useRouter();
   const [step, setStep] = useState<Step>('store');
 
-  // Store step
-  const [storeQuery, setStoreQuery] = useState('');
-  const [storeSuggestions, setStoreSuggestions] = useState<StoreResult[]>([]);
+  // Map
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
+  const [mapReady, setMapReady] = useState(false);
+  const [nearbyStores, setNearbyStores] = useState<StoreResult[]>([]);
   const [selectedStore, setSelectedStore] = useState<StoreResult | null>(null);
-  const autocompleteRef = useRef<google.maps.places.AutocompleteService | null>(null);
-  const placesRef = useRef<google.maps.places.PlacesService | null>(null);
-  const mapDivRef = useRef<HTMLDivElement>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   // Item step
   const [itemQuery, setItemQuery] = useState('');
@@ -47,53 +62,128 @@ export default function RegisterPage() {
 
   // Init Google Maps
   useEffect(() => {
-    const initMaps = () => {
-      if (window.google?.maps?.places && mapDivRef.current) {
-        autocompleteRef.current = new google.maps.places.AutocompleteService();
-        placesRef.current = new google.maps.places.PlacesService(mapDivRef.current);
-      }
+    const initMap = () => {
+      if (!mapRef.current || mapInstanceRef.current) return;
+
+      // Default: Tokyo
+      const defaultCenter = { lat: 35.6762, lng: 139.6503 };
+
+      const map = new google.maps.Map(mapRef.current, {
+        center: defaultCenter,
+        zoom: 15,
+        disableDefaultUI: true,
+        zoomControl: true,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        styles: [
+          { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+        ],
+      });
+
+      mapInstanceRef.current = map;
+      setMapReady(true);
+
+      // Get user location
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setUserLocation(loc);
+          map.setCenter(loc);
+
+          // User location dot
+          new google.maps.Marker({
+            position: loc,
+            map,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: '#3B82F6',
+              fillOpacity: 1,
+              strokeColor: 'white',
+              strokeWeight: 2,
+            },
+            zIndex: 999,
+          });
+        },
+        () => setUserLocation(defaultCenter)
+      );
     };
-    if (window.google?.maps?.places) {
-      initMaps();
+
+    if (window.google?.maps) {
+      initMap();
     } else {
-      const existing = document.querySelector('script[src*="maps.googleapis.com"]');
-      if (!existing) {
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places`;
-        script.onload = initMaps;
-        document.head.appendChild(script);
-      } else {
-        existing.addEventListener('load', initMaps);
-      }
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places`;
+      script.async = true;
+      script.onload = initMap;
+      document.head.appendChild(script);
     }
   }, []);
 
-  // Store autocomplete
-  useEffect(() => {
-    if (!storeQuery.trim() || !autocompleteRef.current) { setStoreSuggestions([]); return; }
-    autocompleteRef.current.getPlacePredictions(
-      { input: storeQuery, types: ['supermarket', 'grocery_or_supermarket', 'convenience_store'] },
-      (predictions) => setStoreSuggestions(
-        (predictions || []).map(p => ({ place_id: p.place_id, name: p.structured_formatting.main_text, address: p.structured_formatting.secondary_text || '', lat: 0, lng: 0 }))
-      )
-    );
-  }, [storeQuery]);
+  // Search nearby supermarkets
+  const searchNearbyStores = useCallback((location: { lat: number; lng: number }) => {
+    if (!mapInstanceRef.current) return;
 
-  const selectStore = (suggestion: StoreResult) => {
-    if (!placesRef.current) return;
-    placesRef.current.getDetails({ placeId: suggestion.place_id, fields: ['geometry', 'name', 'formatted_address'] }, (place) => {
-      if (!place?.geometry?.location) return;
-      setSelectedStore({
-        place_id: suggestion.place_id,
-        name: place.name || suggestion.name,
-        address: place.formatted_address || suggestion.address,
-        lat: place.geometry.location.lat(),
-        lng: place.geometry.location.lng(),
+    const service = new google.maps.places.PlacesService(mapInstanceRef.current);
+    service.nearbySearch(
+      {
+        location,
+        radius: 1500,
+        type: 'supermarket',
+      },
+      (results, status) => {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !results) return;
+
+        const stores: StoreResult[] = results.slice(0, 20).map(p => ({
+          place_id: p.place_id!,
+          name: p.name!,
+          address: p.vicinity || '',
+          lat: p.geometry!.location!.lat(),
+          lng: p.geometry!.location!.lng(),
+        }));
+
+        setNearbyStores(stores);
+      }
+    );
+  }, []);
+
+  useEffect(() => {
+    if (mapReady && userLocation) {
+      searchNearbyStores(userLocation);
+    }
+  }, [mapReady, userLocation, searchNearbyStores]);
+
+  // Place markers on map
+  useEffect(() => {
+    if (!mapInstanceRef.current || nearbyStores.length === 0) return;
+
+    // Clear old markers
+    markersRef.current.forEach(m => m.setMap(null));
+    markersRef.current = [];
+
+    nearbyStores.forEach(store => {
+      const isSelected = selectedStore?.place_id === store.place_id;
+      const marker = new google.maps.Marker({
+        position: { lat: store.lat, lng: store.lng },
+        map: mapInstanceRef.current!,
+        title: store.name,
+        icon: {
+          url: svgToUrl(isSelected ? STORE_MARKER_SELECTED_SVG : STORE_MARKER_SVG),
+          scaledSize: new google.maps.Size(isSelected ? 42 : 36, isSelected ? 52 : 44),
+          anchor: new google.maps.Point(isSelected ? 21 : 18, isSelected ? 52 : 44),
+        },
+        zIndex: isSelected ? 100 : 1,
       });
-      setStoreSuggestions([]);
-      setStoreQuery(place.name || suggestion.name);
+
+      marker.addListener('click', () => {
+        setSelectedStore(store);
+        mapInstanceRef.current?.panTo({ lat: store.lat, lng: store.lng });
+      });
+
+      markersRef.current.push(marker);
     });
-  };
+  }, [nearbyStores, selectedStore]);
 
   // Item search
   useEffect(() => {
@@ -102,8 +192,8 @@ export default function RegisterPage() {
       const data = await res.json();
       setItems(data.items || []);
     };
-    fetchItems();
-  }, [itemQuery]);
+    if (step === 'item') fetchItems();
+  }, [itemQuery, step]);
 
   const handleSubmit = async () => {
     if (!selectedStore || !selectedItem || !price) return;
@@ -137,79 +227,84 @@ export default function RegisterPage() {
   const stepIndex = { store: 0, item: 1, price: 2, done: 3 }[step];
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-lg">
-      <div ref={mapDivRef} className="hidden" />
-
+    <div className="flex flex-col h-[calc(100vh-120px)]">
       {/* Step indicator */}
       {step !== 'done' && (
-        <div className="flex items-center mb-8 gap-2">
-          {['スーパー', '品目', '価格'].map((label, i) => (
-            <div key={i} className="flex items-center flex-1">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${i < stepIndex ? 'bg-blue-500 text-white' : i === stepIndex ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                {i < stepIndex ? '✓' : i + 1}
+        <div className="flex items-center px-4 py-3 border-b border-gray-100 bg-white shrink-0">
+          {[{ label: 'スーパー', icon: '🏪' }, { label: '品目', icon: '🛍️' }, { label: '価格', icon: '💴' }].map(({ label, icon }, i) => (
+            <div key={i} className="flex items-center">
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${i === stepIndex ? 'bg-blue-500 text-white' : i < stepIndex ? 'bg-blue-100 text-blue-600' : 'text-gray-400'}`}>
+                <span>{icon}</span>
+                <span>{label}</span>
               </div>
-              <span className={`ml-2 text-sm ${i === stepIndex ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>{label}</span>
-              {i < 2 && <div className={`flex-1 h-px mx-3 ${i < stepIndex ? 'bg-blue-500' : 'bg-gray-200'}`} />}
+              {i < 2 && <div className={`w-6 h-px mx-1 ${i < stepIndex ? 'bg-blue-300' : 'bg-gray-200'}`} />}
             </div>
           ))}
         </div>
       )}
 
-      {/* Step 1: Store */}
+      {/* Step 1: Map with nearby stores */}
       {step === 'store' && (
-        <div>
-          <h2 className="text-xl font-bold mb-1">スーパーを選択</h2>
-          <p className="text-gray-500 text-sm mb-4">価格を登録するスーパーを検索してください</p>
-          <input
-            type="text"
-            value={storeQuery}
-            onChange={e => { setStoreQuery(e.target.value); setSelectedStore(null); }}
-            placeholder="例：イオン、西友、ドンキ..."
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          />
-          {storeSuggestions.length > 0 && (
-            <div className="mt-1 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-              {storeSuggestions.map(s => (
-                <button key={s.place_id} onClick={() => selectStore(s)}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0">
-                  <p className="font-medium text-sm">{s.name}</p>
-                  <p className="text-gray-400 text-xs mt-0.5 truncate">{s.address}</p>
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Map */}
+          <div ref={mapRef} className="flex-1" />
+
+          {/* Bottom sheet */}
+          <div className="bg-white border-t border-gray-200 px-4 py-4 shrink-0 shadow-lg">
+            {selectedStore ? (
+              <>
+                <div className="flex items-start gap-3 mb-4">
+                  <span className="text-2xl">🛒</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-900 truncate">{selectedStore.name}</p>
+                    <p className="text-sm text-gray-500 truncate">{selectedStore.address}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setStep('item')}
+                  className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-colors"
+                >
+                  このスーパーで登録する →
                 </button>
-              ))}
-            </div>
-          )}
-          <button
-            disabled={!selectedStore}
-            onClick={() => setStep('item')}
-            className="mt-6 w-full py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-medium rounded-lg transition-colors"
-          >
-            次へ →
-          </button>
+              </>
+            ) : (
+              <div className="text-center py-2">
+                <p className="text-gray-500 text-sm">
+                  {nearbyStores.length > 0
+                    ? `${nearbyStores.length}件のスーパーが見つかりました。マーカーをタップして選択`
+                    : '位置情報を取得中...'}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* Step 2: Item */}
       {step === 'item' && (
-        <div>
-          <h2 className="text-xl font-bold mb-1">品目を選択</h2>
-          <p className="text-gray-500 text-sm mb-4">{selectedStore?.name} の価格を登録する品目</p>
+        <div className="flex flex-col flex-1 overflow-hidden px-4 py-4 bg-white">
+          <p className="text-sm text-gray-500 mb-4">
+            <span className="font-medium text-gray-900">{selectedStore?.name}</span> で登録する品目を選択
+          </p>
           <input
             type="text"
             value={itemQuery}
             onChange={e => setItemQuery(e.target.value)}
             placeholder="例：卵、牛乳、キャベツ..."
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 mb-3"
+            autoFocus
+            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 mb-3"
           />
-          <div className="space-y-1 max-h-72 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto space-y-1">
             {items.map(item => (
-              <button key={item.id} onClick={() => { setSelectedItem(item); setStep('price'); }}
-                className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${selectedItem?.id === item.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}>
+              <button key={item.id}
+                onClick={() => { setSelectedItem(item); setStep('price'); }}
+                className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors">
                 <span className="font-medium text-sm">{item.name_ja}</span>
-                <span className="ml-2 text-xs text-gray-400">{item.category} · {item.unit}</span>
+                <span className="ml-2 text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{item.unit}</span>
               </button>
             ))}
           </div>
-          <button onClick={() => setStep('store')} className="mt-4 text-sm text-gray-400 hover:text-gray-600">
+          <button onClick={() => setStep('store')} className="mt-3 text-sm text-gray-400 hover:text-gray-600">
             ← 戻る
           </button>
         </div>
@@ -217,35 +312,42 @@ export default function RegisterPage() {
 
       {/* Step 3: Price */}
       {step === 'price' && (
-        <div>
-          <h2 className="text-xl font-bold mb-1">価格を入力</h2>
-          <p className="text-gray-500 text-sm mb-4">
-            {selectedStore?.name} の {selectedItem?.name_ja} ({selectedItem?.unit})
-          </p>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg font-medium">¥</span>
+        <div className="flex flex-col px-4 py-6 bg-white flex-1">
+          <div className="bg-gray-50 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+              <span>🏪</span><span>{selectedStore?.name}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span>🛍️</span><span>{selectedItem?.name_ja} ({selectedItem?.unit})</span>
+            </div>
+          </div>
+
+          <label className="text-sm font-medium text-gray-700 mb-2">税込み価格を入力</label>
+          <div className="relative mb-6">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-xl font-bold">¥</span>
             <input
               type="number"
               value={price}
               onChange={e => setPrice(e.target.value)}
               placeholder="0"
               min="1"
-              className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-4 text-2xl font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              autoFocus
+              className="w-full border-2 border-gray-200 focus:border-blue-500 rounded-xl pl-10 pr-4 py-5 text-3xl font-bold focus:outline-none transition-colors"
             />
           </div>
 
           {error && (
-            <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">{error}</div>
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">{error}</div>
           )}
 
           <button
             disabled={!price || Number(price) <= 0 || submitting}
             onClick={handleSubmit}
-            className="mt-6 w-full py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold rounded-lg transition-colors"
+            className="w-full py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white text-lg font-bold rounded-xl transition-colors"
           >
-            {submitting ? '登録中...' : '登録する'}
+            {submitting ? '登録中...' : '登録する 🎉'}
           </button>
-          <button onClick={() => setStep('item')} className="mt-3 w-full text-sm text-gray-400 hover:text-gray-600">
+          <button onClick={() => setStep('item')} className="mt-3 text-sm text-gray-400 hover:text-gray-600 text-center w-full">
             ← 戻る
           </button>
         </div>
@@ -253,22 +355,25 @@ export default function RegisterPage() {
 
       {/* Done */}
       {step === 'done' && result && (
-        <div className="text-center py-8">
-          <div className="text-6xl mb-4">🎉</div>
+        <div className="flex flex-col items-center justify-center flex-1 px-4 text-center">
+          <div className="text-7xl mb-5 animate-bounce">🎉</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">登録完了！</h2>
-          <p className="text-gray-500 mb-4">
-            {selectedStore?.name} の {selectedItem?.name_ja} ¥{price} を登録しました
-          </p>
-          <div className="inline-flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-full px-5 py-2 mb-8">
-            <span className="text-yellow-500 font-bold text-lg">+{result.points_awarded}pt</span>
-            <span className="text-yellow-600 text-sm">獲得！</span>
+          <p className="text-gray-500 mb-1">{selectedStore?.name}</p>
+          <p className="text-gray-700 font-medium mb-6">{selectedItem?.name_ja} ¥{Number(price).toLocaleString()}</p>
+          <div className="inline-flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-full px-6 py-3 mb-8 shadow-sm">
+            <span className="text-2xl">⭐</span>
+            <span className="text-yellow-600 font-bold text-xl">+{result.points_awarded}pt</span>
+            <span className="text-yellow-500 text-sm">獲得！</span>
           </div>
-          <div className="space-y-3">
-            <button onClick={() => { setStep('store'); setSelectedStore(null); setSelectedItem(null); setPrice(''); setStoreQuery(''); setItemQuery(''); setResult(null); }}
-              className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg">
+          <div className="w-full space-y-3">
+            <button
+              onClick={() => { setStep('store'); setSelectedStore(null); setSelectedItem(null); setPrice(''); setItemQuery(''); setResult(null); }}
+              className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl"
+            >
               続けて登録する
             </button>
-            <button onClick={() => router.push('/')} className="w-full py-3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-medium rounded-lg">
+            <button onClick={() => router.push('/')}
+              className="w-full py-3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-medium rounded-xl">
               ホームへ戻る
             </button>
           </div>
