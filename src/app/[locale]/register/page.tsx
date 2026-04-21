@@ -115,7 +115,7 @@ export default function RegisterPage() {
           setLocationError(true);
           setUserLocation(defaultCenter);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { timeout: 10000, maximumAge: 60000 }
       );
     };
 
@@ -273,7 +273,7 @@ export default function RegisterPage() {
                         mapInstanceRef.current?.setZoom(15);
                       },
                       () => setLocationError(true),
-                      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                      { timeout: 10000, maximumAge: 60000 }
                     );
                   }}
                   className="text-xs text-orange-600 font-medium underline shrink-0"
@@ -311,7 +311,7 @@ export default function RegisterPage() {
                     console.warn('Geolocation retry error:', err.code);
                     setLocationError(true);
                   },
-                  { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                  { timeout: 10000, maximumAge: 60000 }
                 );
               }}
               className="absolute bottom-4 right-4 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center border border-gray-200 hover:bg-gray-50 z-10"
