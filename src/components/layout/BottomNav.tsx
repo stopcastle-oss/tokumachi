@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -13,18 +13,19 @@ interface NavItem {
 export const BottomNav = () => {
   const t = useTranslations();
   const pathname = usePathname();
+  const locale = useLocale();
 
   const navItems: NavItem[] = [
-    { href: '/', label: t('common.home'), icon: '🏠' },
-    { href: '/map', label: t('common.map'), icon: '🗺️' },
-    { href: '/search', label: t('common.search'), icon: '🔍' },
-    { href: '/register', label: t('common.register'), icon: '➕' },
-    { href: '/profile', label: t('common.profile'), icon: '👤' },
+    { href: `/${locale}`, label: t('common.home'), icon: '🏠' },
+    { href: `/${locale}/map`, label: t('common.map'), icon: '🗺️' },
+    { href: `/${locale}/search`, label: t('common.search'), icon: '🔍' },
+    { href: `/${locale}/register`, label: t('common.register'), icon: '➕' },
+    { href: `/${locale}/profile`, label: t('common.profile'), icon: '👤' },
   ];
 
   const isActive = (href: string) => {
-    if (href === '/') {
-      return pathname === '/' || pathname === '/ja';
+    if (href === `/${locale}`) {
+      return pathname === `/${locale}` || pathname === '/';
     }
     return pathname.includes(href);
   };

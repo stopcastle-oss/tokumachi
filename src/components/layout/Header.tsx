@@ -1,12 +1,13 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 
 export const Header = () => {
   const t = useTranslations();
   const { user, profile, logout } = useAuth();
+  const locale = useLocale();
 
   const handleLogout = async () => {
     await logout();
@@ -17,7 +18,7 @@ export const Header = () => {
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="font-bold text-xl text-primary">
+        <Link href={`/${locale}`} className="font-bold text-xl text-primary">
           {t('common.appName')}
         </Link>
 
@@ -47,7 +48,7 @@ export const Header = () => {
             </>
           ) : (
             <Link
-              href="/login"
+              href={`/${locale}/login`}
               className="text-sm font-medium text-primary hover:text-blue-700"
             >
               {t('common.login')}
