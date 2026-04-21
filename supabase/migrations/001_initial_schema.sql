@@ -2,12 +2,19 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "postgis";
 
--- Create enum types
-CREATE TYPE price_status AS ENUM ('active', 'pending_review', 'archived');
-CREATE TYPE country_code AS ENUM ('ja', 'ko', 'tw', 'hk', 'sg');
+-- Create enum types (idempotent)
+DO $$ BEGIN
+  CREATE TYPE price_status AS ENUM ('active', 'pending_review', 'archived');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE country_code AS ENUM ('ja', 'ko', 'tw', 'hk', 'sg');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Create profiles table
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
@@ -23,7 +30,7 @@ CREATE TABLE profiles (
 );
 
 -- Create stores table
-CREATE TABLE stores (
+CREATE TABLE IF NOT EXISTS stores (
   id TEXT PRIMARY KEY, -- Google Place ID
   name_ja TEXT NOT NULL,
   name_ko TEXT,
@@ -38,10 +45,10 @@ CREATE TABLE stores (
 );
 
 -- Create spatial index
-CREATE INDEX idx_stores_geom ON stores USING GIST (geom);
+CREATE INDEX IF NOT EXISTS idx_stores_geom ON stores USING GIST (geom);
 
 -- Create items table
-CREATE TABLE items (
+CREATE TABLE IF NOT EXISTS items (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name_ja TEXT NOT NULL UNIQUE,
   name_ko TEXT,
@@ -54,7 +61,7 @@ CREATE TABLE items (
 );
 
 -- Create price_entries table
-CREATE TABLE price_entries (
+CREATE TABLE IF NOT EXISTS price_entries (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   store_id TEXT NOT NULL REFERENCES stores(id),
   item_id UUID NOT NULL REFERENCES items(id),
@@ -70,7 +77,7 @@ CREATE TABLE price_entries (
 );
 
 -- Create likes table
-CREATE TABLE likes (
+CREATE TABLE IF NOT EXISTS likes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   price_entry_id UUID NOT NULL REFERENCES price_entries(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -80,7 +87,7 @@ CREATE TABLE likes (
 );
 
 -- Create point_logs table for audit trail
-CREATE TABLE point_logs (
+CREATE TABLE IF NOT EXISTS point_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id),
   points INTEGER NOT NULL,
@@ -90,7 +97,7 @@ CREATE TABLE point_logs (
 );
 
 -- Create user_badges table
-CREATE TABLE user_badges (
+CREATE TABLE IF NOT EXISTS user_badges (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id),
   badge_name TEXT NOT NULL,
@@ -100,7 +107,7 @@ CREATE TABLE user_badges (
 );
 
 -- Create flyers table
-CREATE TABLE flyers (
+CREATE TABLE IF NOT EXISTS flyers (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   store_id TEXT NOT NULL REFERENCES stores(id),
   user_id UUID NOT NULL REFERENCES profiles(id),
@@ -112,19 +119,19 @@ CREATE TABLE flyers (
 
 -- Create indexes for common queries
 -- Functional unique index for daily entry limit (one per user/store/item per day in JST)
-CREATE UNIQUE INDEX unique_daily_entry ON price_entries(store_id, item_id, user_id, DATE(created_at AT TIME ZONE 'Asia/Tokyo'));
+CREATE UNIQUE INDEX IF NOT EXISTS unique_daily_entry ON price_entries(store_id, item_id, user_id, DATE(created_at AT TIME ZONE 'Asia/Tokyo'));
 
-CREATE INDEX idx_price_entries_store_id ON price_entries(store_id);
-CREATE INDEX idx_price_entries_item_id ON price_entries(item_id);
-CREATE INDEX idx_price_entries_user_id ON price_entries(user_id);
-CREATE INDEX idx_price_entries_status ON price_entries(status);
-CREATE INDEX idx_price_entries_created_at ON price_entries(created_at);
-CREATE INDEX idx_likes_user_id ON likes(user_id);
-CREATE INDEX idx_likes_price_entry_id ON likes(price_entry_id);
-CREATE INDEX idx_point_logs_user_id ON point_logs(user_id);
-CREATE INDEX idx_user_badges_user_id ON user_badges(user_id);
-CREATE INDEX idx_flyers_store_id ON flyers(store_id);
-CREATE INDEX idx_items_name_ja ON items(name_ja);
+CREATE INDEX IF NOT EXISTS idx_price_entries_store_id ON price_entries(store_id);
+CREATE INDEX IF NOT EXISTS idx_price_entries_item_id ON price_entries(item_id);
+CREATE INDEX IF NOT EXISTS idx_price_entries_user_id ON price_entries(user_id);
+CREATE INDEX IF NOT EXISTS idx_price_entries_status ON price_entries(status);
+CREATE INDEX IF NOT EXISTS idx_price_entries_created_at ON price_entries(created_at);
+CREATE INDEX IF NOT EXISTS idx_likes_user_id ON likes(user_id);
+CREATE INDEX IF NOT EXISTS idx_likes_price_entry_id ON likes(price_entry_id);
+CREATE INDEX IF NOT EXISTS idx_point_logs_user_id ON point_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_badges_user_id ON user_badges(user_id);
+CREATE INDEX IF NOT EXISTS idx_flyers_store_id ON flyers(store_id);
+CREATE INDEX IF NOT EXISTS idx_items_name_ja ON items(name_ja);
 
 -- Enable Row Level Security (will be configured in 002_rls_policies.sql)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
