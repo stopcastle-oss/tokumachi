@@ -36,6 +36,13 @@ export default function MapPage() {
   const fetchStores = useCallback(async (lat: number, lng: number, r: number) => {
     setIsLoading(true);
     try {
+      // Google Places에서 주변 마트를 DB에 upsert한 후 조회
+      await fetch('/api/stores/import-nearby', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lng, radius: r }),
+      });
+
       const response = await fetch(`/api/stores/nearby?lat=${lat}&lng=${lng}&radius=${r}`);
       if (!response.ok) throw new Error('Failed to fetch');
       const data = await response.json();
