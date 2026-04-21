@@ -16,7 +16,7 @@ function CallbackHandler() {
       const supabase = createClient();
       supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
         if (error) {
-          router.replace('/login?error=auth_failed');
+          router.replace(`/login?error=${encodeURIComponent(error.message)}`);
         } else {
           router.replace(redirect);
         }
