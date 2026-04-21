@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
-  const redirect = searchParams.get('redirect') || '/';
+  const redirect = searchParams.get('redirect') || '/ja';
 
   if (code) {
     const supabase = await createClient();
@@ -15,6 +15,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Return error page or redirect to login
-  return NextResponse.redirect(new URL('/login?error=auth_failed', request.url));
+  return NextResponse.redirect(new URL('/ja/login?error=auth_failed', request.url));
 }
