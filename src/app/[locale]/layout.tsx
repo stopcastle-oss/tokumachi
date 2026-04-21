@@ -21,11 +21,13 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <Providers>
-        <Header />
-        <main className="pb-20 md:pb-0">
-          {children}
-        </main>
-        <BottomNav />
+        <div className="max-w-[430px] mx-auto min-h-screen bg-white shadow-xl shadow-gray-300/50 relative">
+          <Header />
+          <main className="pb-20">
+            {children}
+          </main>
+          <BottomNav />
+        </div>
       </Providers>
     </NextIntlClientProvider>
   );

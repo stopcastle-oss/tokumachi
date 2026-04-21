@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="theme-color" content="#3B82F6" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </head>
-      <body>{children}</body>
+      <body className="bg-gray-100">{children}</body>
     </html>
   );
 }

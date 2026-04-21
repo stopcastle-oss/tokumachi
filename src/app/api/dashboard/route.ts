@@ -30,12 +30,9 @@ export async function GET() {
       popular_searches: [], // Not included in current DB function
     };
 
-    // Cache response for 60 seconds
-    const headers = new Headers();
-    headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
-    headers.set('Content-Type', 'application/json');
-
-    return Response.json(response, { headers });
+    return Response.json(response, {
+      headers: { 'Cache-Control': 'no-store' },
+    });
   } catch (err) {
     console.error('Dashboard endpoint error:', err);
     return Response.json(
