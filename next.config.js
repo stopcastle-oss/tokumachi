@@ -9,7 +9,7 @@ const nextConfig = {
   images: {
     domains: [
       "lh3.googleusercontent.com",
-      // Supabase Storage domain
+      "iackatkodhacdhhhffyw.supabase.co",
     ],
   },
 };

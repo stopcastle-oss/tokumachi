@@ -101,8 +101,13 @@ export interface DashboardResponse {
   }>;
 }
 
+export interface StoreWithDistance extends Store {
+  distance_meters: number;
+  entry_count: number;
+}
+
 export interface NearbyStoresResponse {
-  stores: Store[];
+  stores: StoreWithDistance[];
 }
 
 export interface PriceSearchResponse {
