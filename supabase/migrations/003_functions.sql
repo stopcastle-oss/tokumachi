@@ -178,7 +178,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create trigger for title update
+-- Create trigger for title update (idempotent)
+DROP TRIGGER IF EXISTS update_user_title_trigger ON profiles;
 CREATE TRIGGER update_user_title_trigger
   BEFORE UPDATE ON profiles
   FOR EACH ROW
