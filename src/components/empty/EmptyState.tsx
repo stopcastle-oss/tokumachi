@@ -57,23 +57,23 @@ export default function EmptyState({ type, storeId, itemId }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4">
       <div className="text-6xl mb-4">{content.emoji}</div>
-      <h2 className="text-xl font-semibold text-gray-800 mb-2 text-center">
+      <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2 text-center">
         {content.title}
       </h2>
-      <p className="text-gray-600 text-center mb-6 max-w-sm">
+      <p className="text-gray-600 dark:text-gray-400 text-center mb-6 max-w-sm">
         {content.description}
       </p>
       {user ? (
         <Link
           href={content.href}
-          className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+          className="px-6 py-2 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors"
         >
           {content.buttonText}
         </Link>
       ) : (
         <Link
           href={`/${locale}/login`}
-          className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+          className="px-6 py-2 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors"
         >
           {t('common.login')}
         </Link>

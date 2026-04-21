@@ -31,7 +31,7 @@ export const BottomNav = () => {
   };
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-gray-200 z-40">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 z-40">
       <div className="flex justify-around">
         {navItems.map((item) => (
           <Link
@@ -40,7 +40,7 @@ export const BottomNav = () => {
             className={`flex flex-col items-center justify-center py-3 px-4 flex-1 ${
               isActive(item.href)
                 ? 'text-primary border-t-2 border-primary'
-                : 'text-gray-600 hover:text-gray-900'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
             <span className="text-xl mb-1">{item.icon}</span>

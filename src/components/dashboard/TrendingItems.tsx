@@ -22,12 +22,12 @@ export default function TrendingItems({ items, isLoading = false }: TrendingItem
   if (isLoading) {
     return (
       <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-4">{t('home.trendingItems')}</h2>
+        <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{t('home.trendingItems')}</h2>
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-gray-100 rounded-lg p-4 animate-pulse">
-              <div className="h-5 bg-gray-300 rounded w-2/3"></div>
-              <div className="h-4 bg-gray-300 rounded w-1/3 mt-2"></div>
+            <div key={i} className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 animate-pulse">
+              <div className="h-5 bg-gray-300 dark:bg-gray-600 rounded w-2/3"></div>
+              <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/3 mt-2"></div>
             </div>
           ))}
         </div>
@@ -41,7 +41,7 @@ export default function TrendingItems({ items, isLoading = false }: TrendingItem
 
   return (
     <div className="mb-6">
-      <h2 className="text-lg font-semibold mb-4">{t('home.trendingItems')}</h2>
+      <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{t('home.trendingItems')}</h2>
       <div className="space-y-3">
         {items.slice(0, 3).map((item, index) => (
           <Link
@@ -49,17 +49,17 @@ export default function TrendingItems({ items, isLoading = false }: TrendingItem
             href={`/${locale}/search?item_id=${item.item_id}`}
             className="block"
           >
-            <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md dark:hover:shadow-black/20 transition-shadow">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
+                    <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded">
                       #{index + 1}
                     </span>
                   </div>
-                  <p className="font-medium text-gray-800">{item.name_ja}</p>
+                  <p className="font-medium text-gray-800 dark:text-gray-100">{item.name_ja}</p>
                 </div>
-                <span className="text-sm text-gray-500 ml-2">
+                <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
                   {item.count} 件
                 </span>
               </div>

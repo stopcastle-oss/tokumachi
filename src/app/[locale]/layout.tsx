@@ -21,7 +21,7 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <Providers>
-        <div className="max-w-[430px] mx-auto min-h-screen bg-white shadow-xl shadow-gray-300/50 relative">
+        <div className="max-w-[430px] mx-auto min-h-screen bg-white dark:bg-gray-900 shadow-xl shadow-gray-300/50 dark:shadow-black/40 relative">
           <Header />
           <main className="pb-20">
             {children}

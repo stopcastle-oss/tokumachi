@@ -91,7 +91,7 @@ export default function MapPage() {
               className={`px-3 py-1.5 rounded-full text-xs font-semibold shadow-md transition-colors ${
                 radius === r
                   ? 'bg-primary text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               {r >= 1000 ? `${r / 1000}km` : `${r}m`}
@@ -124,38 +124,40 @@ export default function MapPage() {
       </div>
 
       {/* Store list */}
-      <div className="flex-1 overflow-y-auto bg-white border-t pb-20">
+      <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 pb-20">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-gray-400 text-sm">読み込み中...</p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm">読み込み中...</p>
           </div>
         ) : stores.length === 0 ? (
           <div className="flex items-center justify-center h-full px-4">
-            <p className="text-gray-400 text-sm text-center">この周辺にスーパーが見つかりませんでした</p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm text-center">この周辺にスーパーが見つかりませんでした</p>
           </div>
         ) : (
           <>
-            <div className="px-4 py-2.5 bg-gray-50 border-b sticky top-0 z-10">
-              <p className="text-xs font-semibold text-gray-600">
+            <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
                 近くのスーパー（{stores.length}件）
               </p>
-              <p className="text-xs text-gray-400">地図をタップして場所を変更</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">地図をタップして場所を変更</p>
             </div>
             {stores.map(store => (
               <button
                 key={store.id}
                 onClick={() => setSelectedStore(store)}
-                className={`w-full flex items-center px-4 py-3 border-b text-left transition-colors ${
-                  selectedStore?.id === store.id ? 'bg-blue-50' : 'hover:bg-gray-50'
+                className={`w-full flex items-center px-4 py-3 border-b border-gray-100 dark:border-gray-800 text-left transition-colors ${
+                  selectedStore?.id === store.id
+                    ? 'bg-blue-50 dark:bg-blue-900/20'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{store.name_ja}</p>
-                  <p className="text-xs text-gray-400 truncate mt-0.5">{store.address}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{store.name_ja}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{store.address}</p>
                 </div>
                 <div className="ml-3 flex flex-col items-end shrink-0">
                   <p className="text-xs font-bold text-primary">{formatDistance(store.distance_meters)}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                     {store.entry_count > 0 ? `${store.entry_count}件の情報` : '情報なし'}
                   </p>
                 </div>

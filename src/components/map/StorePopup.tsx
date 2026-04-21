@@ -19,29 +19,29 @@ export default function StorePopup({ store, onClose }: StorePopupProps) {
   const isPioneerOpportunity = store.entry_count === 0;
 
   return (
-    <div className="absolute bottom-3 left-4 right-4 bg-white rounded-2xl shadow-xl p-4 z-10">
+    <div className="absolute bottom-3 left-4 right-4 bg-white dark:bg-gray-800 rounded-2xl shadow-xl dark:shadow-black/40 p-4 z-10">
       <div className="flex justify-between items-start mb-2">
-        <h3 className="font-bold text-base text-gray-900 flex-1 pr-2">{store.name_ja}</h3>
+        <h3 className="font-bold text-base text-gray-900 dark:text-white flex-1 pr-2">{store.name_ja}</h3>
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none"
           aria-label="閉じる"
         >
           ✕
         </button>
       </div>
 
-      <p className="text-sm text-gray-500 mb-1">{store.address}</p>
-      <p className="text-xs text-gray-400 mb-3">
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{store.address}</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
         {store.distance_meters >= 1000
           ? `${(store.distance_meters / 1000).toFixed(1)}km`
           : `${store.distance_meters}m`}
       </p>
 
       {isPioneerOpportunity ? (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">
-          <p className="text-sm font-semibold text-amber-800 mb-0.5">🏆 開拓者チャンス！</p>
-          <p className="text-xs text-amber-700">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3 mb-3">
+          <p className="text-sm font-semibold text-amber-800 dark:text-amber-400 mb-0.5">🏆 開拓者チャンス！</p>
+          <p className="text-xs text-amber-700 dark:text-amber-500">
             最初に登録して開拓者バッジと100ptを獲得しましょう
           </p>
         </div>

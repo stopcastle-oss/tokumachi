@@ -15,7 +15,7 @@ export const Header = () => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link href={`/${locale}`} className="font-bold text-xl text-primary">
@@ -27,9 +27,9 @@ export const Header = () => {
           {user ? (
             <>
               <div className="text-sm">
-                <p className="font-medium">{profile?.name || user.email}</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">{profile?.name || user.email}</p>
                 {profile?.title && (
-                  <p className="text-gray-600 text-xs">{profile.title}</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-xs">{profile.title}</p>
                 )}
               </div>
               {profile?.avatar_url && (
@@ -41,7 +41,7 @@ export const Header = () => {
               )}
               <button
                 onClick={handleLogout}
-                className="text-sm text-gray-600 hover:text-gray-900"
+                className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               >
                 {t('common.logout')}
               </button>
@@ -49,7 +49,7 @@ export const Header = () => {
           ) : (
             <Link
               href={`/${locale}/login`}
-              className="text-sm font-medium text-primary hover:text-blue-700"
+              className="text-sm font-medium text-primary hover:text-blue-400"
             >
               {t('common.login')}
             </Link>

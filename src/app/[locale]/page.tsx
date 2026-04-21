@@ -37,16 +37,16 @@ export default function Home() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 flex flex-col">
-        <h1 className="text-2xl font-bold mb-4">{t('home.title')}</h1>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 flex flex-col">
+        <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{t('home.title')}</h1>
         <EmptyState type="no_entries" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-20">
-      <h1 className="text-2xl font-bold mb-6">{t('home.title')}</h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 pb-20">
+      <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">{t('home.title')}</h1>
 
       <TodayStats
         count={data?.today_entries_count || 0}

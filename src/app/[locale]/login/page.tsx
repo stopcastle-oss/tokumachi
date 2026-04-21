@@ -19,35 +19,35 @@ function LoginContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-5 h-5 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="w-5 h-5 border-2 border-gray-200 dark:border-gray-700 border-t-blue-500 rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center px-4 py-12">
       {/* Logo */}
       <div className="mb-8 text-center">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-500 mb-5 shadow-lg shadow-blue-500/20">
           <span className="text-3xl">🛒</span>
         </div>
-        <h1 className="text-gray-900 text-2xl font-bold tracking-tight">TokuMachi</h1>
-        <p className="text-gray-500 text-sm mt-1">お得な価格情報をみんなでシェア</p>
+        <h1 className="text-gray-900 dark:text-white text-2xl font-bold tracking-tight">TokuMachi</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">お得な価格情報をみんなでシェア</p>
       </div>
 
       {/* Card */}
       <div className="w-full max-w-sm">
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <h2 className="text-gray-900 text-xl font-semibold mb-1 text-center">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm dark:shadow-black/20">
+          <h2 className="text-gray-900 dark:text-white text-xl font-semibold mb-1 text-center">
             ログインして始める
           </h2>
-          <p className="text-gray-500 text-sm text-center mb-6">
+          <p className="text-gray-500 dark:text-gray-400 text-sm text-center mb-6">
             アカウントでサインインしてください
           </p>
 
           {authError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-xs text-center break-all">
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg text-xs text-center break-all">
               {authError}
             </div>
           )}
@@ -55,7 +55,7 @@ function LoginContent() {
           <OAuthButtons />
         </div>
 
-        <p className="text-gray-400 text-xs text-center mt-5 leading-relaxed">
+        <p className="text-gray-400 dark:text-gray-500 text-xs text-center mt-5 leading-relaxed">
           続行することで、
           <span className="text-blue-500 hover:underline cursor-pointer">利用規約</span>
           および
@@ -70,8 +70,8 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-5 h-5 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="w-5 h-5 border-2 border-gray-200 dark:border-gray-700 border-t-blue-500 rounded-full animate-spin" />
       </div>
     }>
       <LoginContent />
