@@ -8,14 +8,20 @@ import { StoreWithDistance } from '@/types';
 interface StoreMapProps {
   stores: StoreWithDistance[];
   center: { lat: number; lng: number };
+  searchCenter: { lat: number; lng: number } | null;
   onStoreSelect: (store: StoreWithDistance) => void;
+  onMapClick: (location: { lat: number; lng: number }) => void;
 }
 
-export default function StoreMap({ stores, center, onStoreSelect }: StoreMapProps) {
+export default function StoreMap({ stores, center, searchCenter, onStoreSelect, onMapClick }: StoreMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
+  const searchPinRef = useRef<google.maps.Marker | null>(null);
+  const onMapClickRef = useRef(onMapClick);
   const [mapReady, setMapReady] = useState(false);
+
+  useEffect(() => { onMapClickRef.current = onMapClick; }, [onMapClick]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -28,7 +34,7 @@ export default function StoreMap({ stores, center, onStoreSelect }: StoreMapProp
 
     loader.importLibrary('maps').then(({ Map }) => {
       if (cancelled || !mapRef.current) return;
-      mapInstanceRef.current = new Map(mapRef.current, {
+      const map = new Map(mapRef.current, {
         center,
         zoom: 15,
         disableDefaultUI: true,
@@ -37,13 +43,41 @@ export default function StoreMap({ stores, center, onStoreSelect }: StoreMapProp
           { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
         ],
       });
+      mapInstanceRef.current = map;
+
+      map.addListener('click', (e: google.maps.MapMouseEvent) => {
+        if (e.latLng) {
+          onMapClickRef.current({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+        }
+      });
+
       setMapReady(true);
     });
 
     return () => { cancelled = true; };
-    // center is intentionally excluded — only used for initial map setup
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!mapReady || !mapInstanceRef.current || !searchCenter) return;
+
+    mapInstanceRef.current.panTo(searchCenter);
+
+    if (searchPinRef.current) searchPinRef.current.setMap(null);
+    searchPinRef.current = new google.maps.Marker({
+      position: searchCenter,
+      map: mapInstanceRef.current,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 7,
+        fillColor: '#EF4444',
+        fillOpacity: 0.9,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+      },
+      zIndex: 100,
+    });
+  }, [mapReady, searchCenter]);
 
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current) return;
