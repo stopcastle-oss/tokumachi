@@ -38,6 +38,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   initialize: () => {
     const supabase = createClient();
 
+    // Set initial state immediately
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (user) {
+        set({ user, loading: false, initialized: true });
+        const profile = await fetchProfile(user.id);
+        if (profile) set({ profile });
+      } else {
+        set({ user: null, profile: null, loading: false, initialized: true });
+      }
+    });
+
+    // Listen for future changes (login/logout after initial load)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, session: Session | null) => {
         if (session?.user) {
