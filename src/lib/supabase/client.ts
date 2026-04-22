@@ -11,7 +11,6 @@ export const createClient = () => {
         auth: {
           flowType: 'pkce',
           persistSession: true,
-          detectSessionInUrl: false,
         },
       }
     );
