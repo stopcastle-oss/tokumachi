@@ -14,6 +14,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     pathname === `/${locale}` ||
     pathname === '/' ||
     pathname === `/${locale}/login` ||
+    pathname === '/login' ||
     pathname.startsWith('/auth');
 
   if (isPublic) return <>{children}</>;
