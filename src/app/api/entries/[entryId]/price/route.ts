@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 
-// PATCH: update price by creating a new entry for same store+item
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { entryId: string } }
@@ -19,7 +18,6 @@ export async function PATCH(
 
   const svc = createServiceClient();
 
-  // Get original entry's store + item
   const { data: original, error: fetchError } = await svc
     .from('price_entries')
     .select('store_id, item_id')
@@ -30,7 +28,6 @@ export async function PATCH(
     return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
   }
 
-  // Create new price entry
   const { data: newEntry, error } = await svc
     .from('price_entries')
     .insert({
@@ -45,8 +42,7 @@ export async function PATCH(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Award points for price update
-  await svc.rpc('increment_points' as never, { p_user_id: user.id, p_points: 5 });
+  await svc.rpc('increment_points', { p_user_id: user.id, p_points: 5 });
 
   return NextResponse.json({ new_entry_id: newEntry.id });
 }

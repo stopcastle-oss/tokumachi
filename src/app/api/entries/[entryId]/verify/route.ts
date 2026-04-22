@@ -16,8 +16,9 @@ export async function POST(
   const { data: { user } } = await authClient.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Prevent user from verifying their own entry
   const svc = createServiceClient();
+
+  // Prevent user from verifying their own entry
   const { data: entry } = await svc
     .from('price_entries')
     .select('user_id')
@@ -40,12 +41,6 @@ export async function POST(
 
   // Award 1 trust point to entry creator when someone votes "correct"
   if (is_correct && entry?.user_id) {
-    await svc
-      .from('profiles')
-      .update({ total_points: svc.rpc as never })
-      .eq('id', entry.user_id);
-
-    // Use RPC to increment safely
     await svc.rpc('increment_points', { p_user_id: entry.user_id, p_points: 1 });
   }
 
@@ -59,18 +54,16 @@ export async function POST(
   const correctCount = verifications.filter((v) => v.is_correct).length;
   const wrongCount = verifications.filter((v) => !v.is_correct).length;
   const total = verifications.length;
-  const trustScore = total > 0 ? Math.round((correctCount / total) * 100) : null;
 
   return NextResponse.json({
     correct_count: correctCount,
     wrong_count: wrongCount,
     total_verifications: total,
-    trust_score: trustScore,
+    trust_score: total > 0 ? Math.round((correctCount / total) * 100) : null,
     user_vote: is_correct,
   });
 }
 
-// DELETE = remove vote
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: { entryId: string } }
