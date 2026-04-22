@@ -10,6 +10,7 @@ export const createClient = () => {
       {
         auth: {
           flowType: 'pkce',
+          detectSessionInUrl: false,
         },
       }
     );

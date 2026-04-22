@@ -1,35 +1,45 @@
 'use client';
 
-import { useEffect, Suspense } from 'react';
+import { useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const done = useRef(false);
 
   useEffect(() => {
+    if (done.current) return;
+    done.current = true;
+
+    const code = searchParams.get('code');
     const redirect = searchParams.get('redirect') || '/ja';
+
+    if (!code) {
+      router.replace('/ja/login');
+      return;
+    }
+
     const supabase = createClient();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
-      if (event === 'SIGNED_IN' && session) {
-        // Sync session to server-side cookies so middleware can read it
-        await fetch('/api/auth/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            access_token: session.access_token,
-            refresh_token: session.refresh_token,
-          }),
-        });
-        subscription.unsubscribe();
-        router.replace(redirect);
+    supabase.auth.exchangeCodeForSession(code).then(async (result: Awaited<ReturnType<typeof supabase.auth.exchangeCodeForSession>>) => {
+      const { data, error } = result;
+      if (error || !data.session) {
+        router.replace('/ja/login');
+        return;
       }
-    });
 
-    return () => subscription.unsubscribe();
+      await fetch('/api/auth/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        }),
+      });
+
+      router.replace(redirect);
+    });
   }, [router, searchParams]);
 
   return (
