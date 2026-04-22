@@ -39,7 +39,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     const supabase = createClient();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         if (session?.user) {
           set({ user: session.user, loading: false, initialized: true });
           const profile = await fetchProfile(session.user.id);
