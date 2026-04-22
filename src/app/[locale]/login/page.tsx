@@ -1,68 +1,85 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { useAuth } from '@/hooks/useAuth';
 import { OAuthButtons } from '@/components/auth/OAuthButtons';
 import { useEffect, Suspense } from 'react';
 
 function LoginContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const authError = searchParams.get('error');
+  const locale = useLocale();
   const { user, loading } = useAuth();
 
   useEffect(() => {
     if (user && !loading) {
-      router.push('/');
+      router.push(`/${locale}`);
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, locale]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="w-5 h-5 border-2 border-gray-200 dark:border-gray-700 border-t-blue-500 rounded-full animate-spin" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center px-4 py-12">
-      {/* Logo */}
-      <div className="mb-8 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-500 mb-5 shadow-lg shadow-blue-500/20">
-          <span className="text-3xl">🛒</span>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Top decorative area */}
+      <div className="relative overflow-hidden bg-gradient-to-b from-orange-950/60 to-background flex-none h-56 flex items-center justify-center">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-orange-600/20 via-transparent to-transparent" />
+        <div className="relative z-10 text-center">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-orange-500 to-orange-700 mx-auto flex items-center justify-center shadow-2xl shadow-orange-900/60 mb-4">
+            <span className="material-symbols-outlined text-white text-[40px]"
+              style={{ fontVariationSettings: "'FILL' 1" }}>
+              storefront
+            </span>
+          </div>
+          <h1 className="text-2xl font-extrabold text-on-background">TokuMachi</h1>
+          <p className="text-sm text-on-surface-variant mt-1">お得な価格情報をみんなでシェア</p>
         </div>
-        <h1 className="text-gray-900 dark:text-white text-2xl font-bold tracking-tight">TokuMachi</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">お得な価格情報をみんなでシェア</p>
       </div>
 
-      {/* Card */}
-      <div className="w-full max-w-sm">
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm dark:shadow-black/20">
-          <h2 className="text-gray-900 dark:text-white text-xl font-semibold mb-1 text-center">
-            ログインして始める
-          </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm text-center mb-6">
-            アカウントでサインインしてください
-          </p>
-
-          {authError && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg text-xs text-center break-all">
-              {authError}
-            </div>
-          )}
-
-          <OAuthButtons />
-        </div>
-
-        <p className="text-gray-400 dark:text-gray-500 text-xs text-center mt-5 leading-relaxed">
-          続行することで、
-          <span className="text-blue-500 hover:underline cursor-pointer">利用規約</span>
-          および
-          <span className="text-blue-500 hover:underline cursor-pointer">プライバシーポリシー</span>
-          に同意したことになります。
+      {/* Content */}
+      <div className="flex-1 px-5 pt-8">
+        <h2 className="text-2xl font-extrabold text-on-background mb-1">ログインして始める</h2>
+        <p className="text-sm text-on-surface-variant mb-8">
+          アカウントでサインインしてください
         </p>
+
+        <OAuthButtons />
+
+        {/* Benefits */}
+        <div className="mt-8 space-y-3">
+          {[
+            { icon: 'local_fire_department', text: '近所の特売情報をリアルタイムで確認', fill: true },
+            { icon: 'add_circle', text: '価格を登録してポイントをゲット', fill: true },
+            { icon: 'emoji_events', text: 'ランキングに参加して特典をもらおう', fill: true },
+          ].map((item, i) => (
+            <div key={i} className="flex items-center gap-3 bg-surface-container rounded-2xl px-4 py-3 border border-white/5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <span
+                  className="material-symbols-outlined text-primary text-[20px]"
+                  style={{ fontVariationSettings: item.fill ? "'FILL' 1" : "'FILL' 0" }}
+                >
+                  {item.icon}
+                </span>
+              </div>
+              <span className="text-sm font-medium text-on-background">{item.text}</span>
+            </div>
+          ))}
+        </div>
       </div>
+
+      <p className="text-center text-on-surface-variant/50 text-xs px-8 py-6 leading-relaxed">
+        続行することで、
+        <span className="text-primary">利用規約</span>
+        および
+        <span className="text-primary">プライバシーポリシー</span>
+        に同意したことになります。
+      </p>
     </div>
   );
 }
@@ -70,8 +87,8 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="w-5 h-5 border-2 border-gray-200 dark:border-gray-700 border-t-blue-500 rounded-full animate-spin" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
     }>
       <LoginContent />

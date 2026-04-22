@@ -4,19 +4,27 @@ import "@/styles/globals.css";
 
 export const metadata: Metadata = {
   title: "TokuMachi",
-  description: "Community-driven retail price information platform",
+  description: "地域の特売情報をみんなでシェア",
   manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html>
+    <html lang="ja" className="dark">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#3B82F6" />
+        <meta name="theme-color" content="#ff5722" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+          rel="stylesheet"
+        />
       </head>
-      <body className="bg-gray-100 dark:bg-gray-950">{children}</body>
+      <body className="bg-background text-on-background">{children}</body>
     </html>
   );
 }

@@ -7,25 +7,18 @@ import { BottomNav } from "@/components/layout/BottomNav";
 
 interface LayoutProps {
   children: ReactNode;
-  params: {
-    locale: string;
-  };
+  params: { locale: string };
 }
 
-export default async function LocaleLayout({
-  children,
-  params: { locale },
-}: LayoutProps) {
+export default async function LocaleLayout({ children, params: { locale } }: LayoutProps) {
   const messages = await getMessages();
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <Providers>
-        <div className="max-w-[430px] mx-auto min-h-screen bg-white dark:bg-gray-900 shadow-xl shadow-gray-300/50 dark:shadow-black/40 relative">
+        <div className="max-w-[430px] mx-auto min-h-screen bg-background relative shadow-2xl shadow-black/60">
           <Header />
-          <main className="pb-20">
-            {children}
-          </main>
+          <main className="pb-24">{children}</main>
           <BottomNav />
         </div>
       </Providers>

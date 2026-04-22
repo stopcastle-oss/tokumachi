@@ -1,61 +1,54 @@
 'use client';
 
-import { useTranslations, useLocale } from 'next-intl';
+import { useLocale } from 'next-intl';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { useDashboardStore } from '@/store/dashboard';
 
 export const Header = () => {
-  const t = useTranslations();
-  const { user, profile, logout } = useAuth();
+  const { user, profile } = useAuth();
+  const { todayCount } = useDashboardStore();
   const locale = useLocale();
 
-  const handleLogout = async () => {
-    await logout();
-    window.location.href = '/';
-  };
-
   return (
-    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        {/* Logo */}
-        <Link href={`/${locale}`} className="font-bold text-xl text-primary">
-          {t('common.appName')}
-        </Link>
+    <header className="bg-surface-container-lowest sticky top-0 z-50 flex items-center justify-between w-full px-4 h-16 border-b border-orange-900/20 shadow-sm">
+      {/* Location */}
+      <Link href={`/${locale}`} className="flex items-center gap-1.5 active:scale-95 transition-transform duration-200">
+        <span className="material-symbols-outlined text-primary text-[22px]"
+          style={{ fontVariationSettings: "'FILL' 1" }}>
+          location_on
+        </span>
+        <span className="font-bold text-lg text-on-background">
+          {profile?.city || '東京都足立区'}
+        </span>
+      </Link>
 
-        {/* User Menu */}
-        <div className="flex items-center gap-4">
-          {user ? (
-            <>
-              <div className="text-sm">
-                <p className="font-medium text-gray-900 dark:text-gray-100">{profile?.name || user.email}</p>
-                {profile?.title && (
-                  <p className="text-gray-500 dark:text-gray-400 text-xs">{profile.title}</p>
-                )}
-              </div>
-              {profile?.avatar_url && (
-                <img
-                  src={profile.avatar_url}
-                  alt="avatar"
-                  className="w-8 h-8 rounded-full"
-                />
-              )}
-              <button
-                onClick={handleLogout}
-                className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              >
-                {t('common.logout')}
-              </button>
-            </>
-          ) : (
-            <Link
-              href={`/${locale}/login`}
-              className="text-sm font-medium text-primary hover:text-blue-400"
-            >
-              {t('common.login')}
-            </Link>
+      {/* Right side */}
+      {user ? (
+        <div className="flex items-center gap-2">
+          {todayCount > 0 && (
+            <div className="bg-primary text-white px-4 py-1.5 rounded-full text-xs font-extrabold shadow-lg shadow-orange-900/40">
+              今日 {todayCount}件 登録!
+            </div>
           )}
+          <Link href={`/${locale}/profile`}>
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="avatar" className="w-8 h-8 rounded-full border-2 border-primary/30" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="material-symbols-outlined text-primary text-[18px]">person</span>
+              </div>
+            )}
+          </Link>
         </div>
-      </div>
+      ) : (
+        <Link
+          href={`/${locale}/login`}
+          className="bg-primary text-white px-4 py-1.5 rounded-full text-xs font-extrabold shadow-lg shadow-orange-900/40"
+        >
+          ログイン
+        </Link>
+      )}
     </header>
   );
 };

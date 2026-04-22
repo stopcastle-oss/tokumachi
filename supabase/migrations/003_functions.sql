@@ -216,11 +216,16 @@ BEGIN
 
   SELECT json_agg(row_to_json(t)) INTO v_top_liked
   FROM (
-    SELECT id, price, like_count, created_at, store_id, item_id
-    FROM price_entries
-    WHERE status = 'active'
-    ORDER BY like_count DESC
-    LIMIT 5
+    SELECT
+      pe.id, pe.price, pe.like_count, pe.created_at, pe.store_id, pe.item_id,
+      i.name_ja AS item_name,
+      s.name_ja AS store_name
+    FROM price_entries pe
+    LEFT JOIN items i ON i.id = pe.item_id
+    LEFT JOIN stores s ON s.id = pe.store_id
+    WHERE pe.status = 'active'
+    ORDER BY pe.like_count DESC
+    LIMIT 10
   ) t;
 
   RETURN QUERY SELECT v_today_count, v_trending, v_top_liked;

@@ -86,6 +86,17 @@ export interface Flyer {
 
 // API Response types
 
+export interface TopLikedEntry {
+  id: string;
+  store_id: string;
+  item_id: string;
+  price: number;
+  like_count: number;
+  created_at: string;
+  item_name?: string;
+  store_name?: string;
+}
+
 export interface DashboardResponse {
   today_entries_count: number;
   trending_items: Array<{
@@ -93,7 +104,7 @@ export interface DashboardResponse {
     name_ja: string;
     count: number;
   }>;
-  top_liked_entries: PriceEntry[];
+  top_liked_entries: TopLikedEntry[];
   popular_searches: Array<{
     item_id: string;
     name_ja: string;
