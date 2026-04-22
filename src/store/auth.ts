@@ -39,8 +39,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     const supabase = createClient();
 
     // Set initial state immediately
-    supabase.auth.getUser().then(async (res) => {
-      const user: User | null = res.data.user;
+    void (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         set({ user, loading: false, initialized: true });
         const profile = await fetchProfile(user.id);
@@ -48,7 +48,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       } else {
         set({ user: null, profile: null, loading: false, initialized: true });
       }
-    });
+    })();
 
     // Listen for future changes (login/logout after initial load)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
