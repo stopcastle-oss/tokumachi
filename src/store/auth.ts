@@ -58,6 +58,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
+      await fetch('/api/auth/sync', { method: 'DELETE' });
       set({ user: null, profile: null });
     } catch (error) {
       console.error("Logout error:", error);

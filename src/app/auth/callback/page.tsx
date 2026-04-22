@@ -18,12 +18,25 @@ function CallbackHandler() {
     }
 
     const supabase = createClient();
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+    supabase.auth.exchangeCodeForSession(code).then(async ({ data, error }) => {
       if (error) {
         router.replace(`/ja/login?error=${encodeURIComponent(error.message)}`);
-      } else {
-        router.replace(redirect);
+        return;
       }
+
+      // Sync session to server-side cookies so middleware can read it
+      if (data.session) {
+        await fetch('/api/auth/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          }),
+        });
+      }
+
+      router.replace(redirect);
     });
   }, [router, searchParams]);
 
