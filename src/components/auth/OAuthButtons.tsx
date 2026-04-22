@@ -58,32 +58,6 @@ export const OAuthButtons = () => {
         Googleでログイン
       </button>
 
-      {/* Apple */}
-      <button
-        onClick={() => handleOAuth('apple')}
-        disabled={loading !== null}
-        className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-[#1c1c1e] hover:bg-[#2c2c2e] text-white font-medium rounded-lg border border-[#3a3a3c] transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-      >
-        {loading === 'apple' ? (
-          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-        ) : (
-          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="white">
-            <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.4.07 2.38.74 3.2.8 1.2-.24 2.37-.93 3.58-.84 1.52.12 2.66.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.32 2.99-2.66 4ZM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25Z"/>
-          </svg>
-        )}
-        Appleでログイン
-      </button>
-
-      {/* Divider */}
-      <div className="relative my-1">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-200" />
-        </div>
-        <div className="relative flex justify-center text-xs">
-          <span className="bg-white px-3 text-gray-400">または</span>
-        </div>
-      </div>
-
       <p className="text-center text-gray-400 text-sm py-1">
         他のログイン方法は近日公開予定
       </p>
