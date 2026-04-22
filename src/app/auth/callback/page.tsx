@@ -3,6 +3,7 @@
 import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 function CallbackHandler() {
   const router = useRouter();
@@ -12,7 +13,7 @@ function CallbackHandler() {
     const redirect = searchParams.get('redirect') || '/ja';
     const supabase = createClient();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_IN' && session) {
         // Sync session to server-side cookies so middleware can read it
         await fetch('/api/auth/sync', {
