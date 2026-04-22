@@ -95,6 +95,35 @@ export interface TopLikedEntry {
   created_at: string;
   item_name?: string;
   store_name?: string;
+  correct_count?: number;
+  total_verifications?: number;
+}
+
+export interface EntryDetail {
+  id: string;
+  item_id: string;
+  store_id: string;
+  user_id: string;
+  price: number;
+  like_count: number;
+  status: string;
+  created_at: string;
+  item_name: string;
+  item_category: string;
+  item_unit: string;
+  store_name: string;
+  store_address: string;
+  correct_count: number;
+  wrong_count: number;
+  total_verifications: number;
+  trust_score: number;
+  user_vote: boolean | null;
+}
+
+export interface PriceHistory {
+  id: string;
+  price: number;
+  created_at: string;
 }
 
 export interface DashboardResponse {

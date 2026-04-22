@@ -231,11 +231,13 @@ export default function Home() {
 }
 
 function FeedCard({ entry, locale }: { entry: TopLikedEntry; locale: string }) {
+  const cardTrustScore = entry.total_verifications && entry.total_verifications > 0
+    ? Math.round(((entry.correct_count ?? 0) / entry.total_verifications) * 100)
+    : null;
   const emoji = getEmoji(entry.item_name);
-  const trustScore = Math.min(99, 85 + entry.like_count * 2);
 
   return (
-    <Link href={`/${locale}/map?store_id=${entry.store_id}`}>
+    <Link href={`/${locale}/entries/${entry.id}`}>
       <div className="bg-surface-container p-4 rounded-2xl flex items-center gap-4 border border-white/5 active:bg-surface-container-high transition-colors relative overflow-hidden group">
         <div className="absolute top-0 left-0 w-1 h-full bg-primary opacity-0 group-active:opacity-100 transition-opacity" />
 
@@ -244,18 +246,11 @@ function FeedCard({ entry, locale }: { entry: TopLikedEntry; locale: string }) {
         </div>
 
         <div className="flex-1 min-w-0">
-          {/* Store + trust */}
+          {/* Store + time */}
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-xs text-on-surface-variant truncate">
-                {entry.store_name || 'スーパー'}
-              </span>
-              <div className="flex items-center text-tertiary text-[9px] font-bold bg-tertiary/10 px-1.5 py-0.5 rounded shrink-0">
-                <span className="material-symbols-outlined text-[10px] mr-0.5"
-                  style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                信頼度 {trustScore}%
-              </div>
-            </div>
+            <span className="text-xs text-on-surface-variant truncate">
+              {entry.store_name || 'スーパー'}
+            </span>
             <span className="text-[11px] bg-white/5 px-2 py-0.5 rounded text-on-surface-variant shrink-0">
               {timeAgo(entry.created_at)}
             </span>
@@ -266,18 +261,20 @@ function FeedCard({ entry, locale }: { entry: TopLikedEntry; locale: string }) {
             {entry.item_name || 'アイテム'}
           </h4>
 
-          {/* Price + likes */}
+          {/* Price + trust */}
           <div className="flex justify-between items-end mt-1">
-            <div className="flex items-center gap-2">
-              <span className="text-primary font-extrabold text-[22px]">
-                {entry.price.toLocaleString()}円
-              </span>
-            </div>
-            <div className="flex items-center gap-1 text-on-surface-variant/60 text-xs">
-              <span className="material-symbols-outlined text-[14px]"
-                style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
-              {entry.like_count}
-            </div>
+            <span className="text-primary font-extrabold text-[22px]">
+              {entry.price.toLocaleString()}円
+            </span>
+            {cardTrustScore !== null ? (
+              <div className="flex items-center text-tertiary text-[10px] font-bold bg-tertiary/10 px-1.5 py-0.5 rounded">
+                <span className="material-symbols-outlined text-[11px] mr-0.5"
+                  style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                {cardTrustScore}%
+              </div>
+            ) : (
+              <span className="text-[10px] text-on-surface-variant/40">未評価</span>
+            )}
           </div>
         </div>
       </div>
