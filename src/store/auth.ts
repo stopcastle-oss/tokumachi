@@ -11,9 +11,19 @@ interface AuthState {
   setUser: (user: User | null) => void;
   setProfile: (profile: Profile | null) => void;
   setLoading: (loading: boolean) => void;
-  initialize: () => Promise<void>;
+  initialize: () => () => void;
   logout: () => Promise<void>;
 }
+
+const fetchProfile = async (userId: string) => {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single();
+  return data as Profile | null;
+};
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
@@ -25,33 +35,22 @@ export const useAuthStore = create<AuthState>((set) => ({
   setProfile: (profile) => set({ profile }),
   setLoading: (loading) => set({ loading }),
 
-  initialize: async () => {
-    try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+  initialize: () => {
+    const supabase = createClient();
 
-      if (user) {
-        set({ user, initialized: true, loading: false });
-
-        // Fetch user profile
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-
-        if (profile) {
-          set({ profile });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          set({ user: session.user, loading: false, initialized: true });
+          const profile = await fetchProfile(session.user.id);
+          if (profile) set({ profile });
+        } else {
+          set({ user: null, profile: null, loading: false, initialized: true });
         }
-      } else {
-        set({ user: null, profile: null, initialized: true, loading: false });
       }
-    } catch (error) {
-      console.error("Auth initialization error:", error);
-      set({ initialized: true, loading: false });
-    }
+    );
+
+    return () => subscription.unsubscribe();
   },
 
   logout: async () => {
