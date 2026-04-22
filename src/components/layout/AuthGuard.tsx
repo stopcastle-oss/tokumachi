@@ -10,9 +10,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, loading } = useAuth();
 
-  const isHome = pathname === `/${locale}` || pathname === '/';
+  const isPublic =
+    pathname === `/${locale}` ||
+    pathname === '/' ||
+    pathname === `/${locale}/login` ||
+    pathname.startsWith('/auth');
 
-  if (isHome) return <>{children}</>;
+  if (isPublic) return <>{children}</>;
 
   if (loading) {
     return (
