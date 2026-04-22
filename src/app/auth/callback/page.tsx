@@ -9,35 +9,26 @@ function CallbackHandler() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const code = searchParams.get('code');
     const redirect = searchParams.get('redirect') || '/ja';
-
-    if (!code) {
-      router.replace('/ja/login?error=no_code');
-      return;
-    }
-
     const supabase = createClient();
-    supabase.auth.exchangeCodeForSession(code).then(async ({ data, error }) => {
-      if (error) {
-        router.replace(`/ja/login?error=${encodeURIComponent(error.message)}`);
-        return;
-      }
 
-      // Sync session to server-side cookies so middleware can read it
-      if (data.session) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // Sync session to server-side cookies so middleware can read it
         await fetch('/api/auth/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            access_token: data.session.access_token,
-            refresh_token: data.session.refresh_token,
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
           }),
         });
+        subscription.unsubscribe();
+        router.replace(redirect);
       }
-
-      router.replace(redirect);
     });
+
+    return () => subscription.unsubscribe();
   }, [router, searchParams]);
 
   return (
