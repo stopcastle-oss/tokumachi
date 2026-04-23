@@ -25,11 +25,23 @@ export async function GET() {
       top_liked_entries: [],
     };
 
+    // Top 3 most searched items
+    const { data: hotSearches } = await supabase
+      .from('items')
+      .select('id, name_ja, search_count')
+      .gt('search_count', 0)
+      .order('search_count', { ascending: false })
+      .limit(3);
+
     const response: DashboardResponse = {
       today_entries_count: stats.today_entries_count || 0,
       trending_items: stats.trending_items || [],
       top_liked_entries: stats.top_liked_entries || [],
-      popular_searches: [], // Not included in current DB function
+      popular_searches: (hotSearches || []).map((item) => ({
+        item_id: item.id,
+        name_ja: item.name_ja,
+        search_count: item.search_count,
+      })),
     };
 
     return Response.json(response, {

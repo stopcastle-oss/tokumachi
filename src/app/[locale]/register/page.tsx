@@ -371,7 +371,11 @@ export default function RegisterPage() {
           <div className="flex-1 overflow-y-auto space-y-1">
             {items.map(item => (
               <button key={item.id}
-                onClick={() => { setSelectedItem(item); setStep('price'); }}
+                onClick={() => {
+                  setSelectedItem(item);
+                  setStep('price');
+                  fetch(`/api/items/${item.id}`, { method: 'POST' }).catch(() => {});
+                }}
                 className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors">
                 <span className="font-medium text-sm">{item.name_ja}</span>
                 <span className="ml-2 text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{item.unit}</span>
