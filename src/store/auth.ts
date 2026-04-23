@@ -68,8 +68,8 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     const supabase = createClient();
-    await supabase.auth.signOut();
-    set({ user: null, profile: null });
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
     await fetch('/api/auth/sync', { method: 'DELETE' }).catch(() => {});
+    set({ user: null, profile: null });
   },
 }));
