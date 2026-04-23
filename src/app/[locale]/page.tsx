@@ -162,7 +162,7 @@ export default function Home() {
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-6 bg-primary rounded-full" />
-            <h3 className="text-xl font-bold text-on-background">タイムセール</h3>
+            <h3 className="text-xl font-bold text-on-background">みんなの価格情報</h3>
           </div>
           <Link
             href={`/${locale}/search`}
