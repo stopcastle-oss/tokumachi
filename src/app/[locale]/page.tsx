@@ -54,7 +54,7 @@ export default function Home() {
       .finally(() => setIsLoading(false));
   }, [setTodayCount]);
 
-  const trending = data?.trending_items || [];
+  const hotSearches = data?.popular_searches || [];
   const feed = data?.top_liked_entries || [];
   const todayCount = data?.today_entries_count || 0;
 
@@ -112,7 +112,7 @@ export default function Home() {
       </section>
 
       {/* Trending Keywords */}
-      {(isLoading || trending.length > 0) && (
+      {(isLoading || hotSearches.length > 0) && (
         <section className="mt-8 px-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -123,7 +123,7 @@ export default function Home() {
               <h3 className="font-bold text-on-background">トレンドキーワード</h3>
             </div>
             <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-widest">
-              Real-time
+              Top 3
             </span>
           </div>
 
@@ -132,10 +132,10 @@ export default function Home() {
               ? [1, 2, 3].map((i) => (
                 <div key={i} className="h-11 w-24 rounded-2xl bg-surface-container animate-pulse shrink-0" />
               ))
-              : trending.slice(0, 5).map((item, index) => (
+              : hotSearches.map((item, index) => (
                 <Link
                   key={item.item_id}
-                  href={`/${locale}/search?item_id=${item.item_id}`}
+                  href={`/${locale}/search?q=${encodeURIComponent(item.name_ja)}`}
                   className="flex items-center gap-3 bg-surface-container border border-white/5 rounded-2xl pl-1 pr-5 py-1.5 shadow-sm active:bg-surface-container-high transition-all shrink-0"
                 >
                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-extrabold text-sm shadow-md ${
@@ -148,52 +148,6 @@ export default function Home() {
                     {index + 1}
                   </div>
                   <span className="text-on-background font-bold text-sm">{item.name_ja}</span>
-                </Link>
-              ))
-            }
-          </div>
-        </section>
-      )}
-
-      {/* Popular Searches */}
-      {(isLoading || (data?.popular_searches && data.popular_searches.length > 0)) && (
-        <section className="mt-8 px-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span
-                className="material-symbols-outlined text-primary text-[22px] bg-primary/10 p-1 rounded-lg"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                search
-              </span>
-              <h3 className="font-bold text-on-background">人気の検索ワード</h3>
-            </div>
-            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-widest">
-              Top 3
-            </span>
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
-            {isLoading
-              ? [1, 2, 3].map((i) => (
-                <div key={i} className="h-9 w-20 rounded-full bg-surface-container animate-pulse" />
-              ))
-              : (data?.popular_searches || []).map((item, index) => (
-                <Link
-                  key={item.item_id}
-                  href={`/${locale}/search?q=${encodeURIComponent(item.name_ja)}`}
-                  className="flex items-center gap-2 bg-surface-container border border-white/10 rounded-full pl-2 pr-4 py-1.5 active:bg-surface-container-high transition-all"
-                >
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-extrabold shrink-0 ${
-                    index === 0
-                      ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white'
-                      : index === 1
-                      ? 'bg-primary/15 text-primary'
-                      : 'bg-white/10 text-on-surface-variant'
-                  }`}>
-                    {index + 1}
-                  </div>
-                  <span className="text-sm font-bold text-on-background">{item.name_ja}</span>
                 </Link>
               ))
             }
