@@ -102,7 +102,9 @@ export function LocationPicker({ currentCity, isDenied, onSave, onRequestGeo, on
     <>
       <div className="fixed inset-0 bg-black/60 z-50" onClick={onClose} />
 
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-surface-container rounded-t-3xl z-50 px-5 pt-5 pb-8 shadow-2xl">
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-surface-container rounded-t-3xl z-50 shadow-2xl flex flex-col max-h-[90vh]">
+        {/* Scrollable content */}
+        <div className="overflow-y-auto flex-1 px-5 pt-5">
         <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
 
         <h3 className="text-lg font-bold text-on-background mb-1">場所を設定</h3>
@@ -213,15 +215,18 @@ export function LocationPicker({ currentCity, isDenied, onSave, onRequestGeo, on
             現在の設定：<span className="text-primary font-semibold">{currentCity}</span>
           </p>
         )}
+        </div>{/* end scrollable */}
 
-        {/* Apply button */}
-        <button
-          onClick={handleApply}
-          disabled={!canApply}
-          className="w-full bg-primary text-white font-bold py-3.5 rounded-2xl text-sm disabled:opacity-40 active:scale-95 transition-all"
-        >
-          適用する
-        </button>
+        {/* Fixed apply button */}
+        <div className="px-5 pt-3 pb-8 border-t border-white/5">
+          <button
+            onClick={handleApply}
+            disabled={!canApply}
+            className="w-full bg-primary text-white font-bold py-3.5 rounded-2xl text-sm disabled:opacity-40 active:scale-95 transition-all"
+          >
+            適用する
+          </button>
+        </div>
       </div>
     </>
   );
