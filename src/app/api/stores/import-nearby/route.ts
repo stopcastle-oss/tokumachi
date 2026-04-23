@@ -1,5 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   const { lat, lng, radius = 1000 } = await request.json();
 

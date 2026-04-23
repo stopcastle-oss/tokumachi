@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+export const dynamic = 'force-dynamic';
+
 // Called after client-side OAuth exchange to sync session into server-side cookies
 export async function POST(request: NextRequest) {
   const { access_token, refresh_token } = await request.json();

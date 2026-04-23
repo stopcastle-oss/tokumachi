@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const input = request.nextUrl.searchParams.get('input');
   if (!input || input.length < 2) {

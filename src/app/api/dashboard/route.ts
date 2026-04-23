@@ -1,6 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { DashboardResponse } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const supabase = createServiceClient();

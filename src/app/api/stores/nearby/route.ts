@@ -1,6 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { StoreWithDistance } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const lat = parseFloat(searchParams.get('lat') || '');
