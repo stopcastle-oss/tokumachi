@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useLocale } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from '@/hooks/useLocation';
@@ -12,6 +13,7 @@ export const Header = () => {
   const { user, profile, logout } = useAuth();
   const { todayCount } = useDashboardStore();
   const locale = useLocale();
+  const router = useRouter();
   const { city, isLoading, isDenied, requestLocation, saveCity } = useLocation();
   const [showPicker, setShowPicker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -91,7 +93,12 @@ export const Header = () => {
                   </Link>
                   <div className="h-px bg-white/5" />
                   <button
-                    onClick={() => { setShowMenu(false); void logout(); }}
+                    onClick={async () => {
+                      setShowMenu(false);
+                      await logout();
+                      router.push(`/${locale}`);
+                      router.refresh();
+                    }}
                     className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-error hover:bg-surface-container-high transition-colors"
                   >
                     <span className="material-symbols-outlined text-[18px]">logout</span>
