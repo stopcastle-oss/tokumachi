@@ -64,8 +64,7 @@ export function useLocation() {
       async (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
         const name = await reverseGeocode(lat, lng);
-        if (name) await saveLocation(name, lat, lng);
-        setCoords({ lat, lng });
+        await saveLocation(name ?? '現在地', lat, lng);
         setIsLoading(false);
       },
       () => {

@@ -184,7 +184,7 @@ export function LocationPicker({ currentCity, isDenied, onSave, onRequestGeo, on
         {/* Current location button */}
         <button
           onClick={() => { onRequestGeo(); onClose(); }}
-          className="w-full flex items-center gap-3 bg-surface-container-high border border-white/10 rounded-2xl px-4 py-3 mb-4 active:bg-surface-container-highest transition-colors"
+          className="w-full flex items-center gap-3 bg-surface-container-high border border-white/10 rounded-2xl px-4 py-3 mb-4 active:scale-[0.98] active:bg-surface-container-highest transition-all"
         >
           <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
             <span
