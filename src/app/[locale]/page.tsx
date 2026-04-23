@@ -112,8 +112,7 @@ export default function Home() {
       </section>
 
       {/* Trending Keywords */}
-      {(isLoading || hotSearches.length > 0) && (
-        <section className="mt-8 px-5">
+      <section className="mt-8 px-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-[22px] bg-primary/10 p-1 rounded-lg"
@@ -132,6 +131,10 @@ export default function Home() {
               ? [1, 2, 3].map((i) => (
                 <div key={i} className="h-11 w-24 rounded-2xl bg-surface-container animate-pulse shrink-0" />
               ))
+              : hotSearches.length === 0
+              ? (
+                <p className="text-sm text-on-surface-variant/50">まだ検索データがありません</p>
+              )
               : hotSearches.map((item, index) => (
                 <Link
                   key={item.item_id}
@@ -153,7 +156,6 @@ export default function Home() {
             }
           </div>
         </section>
-      )}
 
       {/* Time Sale Feed */}
       <section className="mt-8 px-5">
