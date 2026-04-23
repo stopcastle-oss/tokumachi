@@ -29,7 +29,6 @@ interface LocationPickerProps {
 export function LocationPicker({ currentCity, isDenied, onSave, onRequestGeo, onClose }: LocationPickerProps) {
   const [input, setInput] = useState('');
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
-  const [selected, setSelected] = useState<SelectedPlace | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -60,56 +59,37 @@ export function LocationPicker({ currentCity, isDenied, onSave, onRequestGeo, on
 
   const handleInputChange = (value: string) => {
     setInput(value);
-    setSelected(null);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => search(value), 300);
   };
 
   const handleSelectPrediction = async (pred: PlacePrediction) => {
-    setInput(pred.description);
     setShowDropdown(false);
     setPredictions([]);
     setIsSearching(true);
+    setInput(pred.structured_formatting.main_text);
     try {
       const res = await fetch(`/api/places/details?place_id=${pred.place_id}`);
       const data: SelectedPlace = await res.json();
-      setSelected(data);
-      setInput(data.name);
+      onSave(data.name, data.lat, data.lng);
     } catch {
-      setSelected({
-        name: pred.structured_formatting.main_text,
-        formatted_address: pred.description,
-        lat: 0,
-        lng: 0,
-      });
+      onSave(pred.structured_formatting.main_text);
     } finally {
       setIsSearching(false);
+      onClose();
     }
   };
-
-  const handleApply = () => {
-    if (selected && selected.lat !== 0) {
-      onSave(selected.name, selected.lat, selected.lng);
-    } else if (input.trim()) {
-      onSave(input.trim());
-    }
-    onClose();
-  };
-
-  const canApply = selected !== null || input.trim().length > 0;
 
   return (
     <>
       <div className="fixed inset-0 bg-black/60 z-50" onClick={onClose} />
 
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-surface-container rounded-t-3xl z-50 shadow-2xl flex flex-col max-h-[90vh]">
-        {/* Scrollable content */}
-        <div className="overflow-y-auto flex-1 px-5 pt-5">
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-surface-container rounded-t-3xl z-50 px-5 pt-5 pb-8 shadow-2xl">
         <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
 
         <h3 className="text-lg font-bold text-on-background mb-1">場所を設定</h3>
         <p className="text-sm text-on-surface-variant mb-4">
-          住所・地名を検索するか、現在地を使用してください
+          住所・地名を検索して選択してください
         </p>
 
         {/* Search input */}
@@ -129,7 +109,7 @@ export function LocationPicker({ currentCity, isDenied, onSave, onRequestGeo, on
             <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           ) : input ? (
             <button
-              onClick={() => { setInput(''); setSelected(null); setPredictions([]); setShowDropdown(false); }}
+              onClick={() => { setInput(''); setPredictions([]); setShowDropdown(false); }}
               className="absolute right-3 top-1/2 -translate-y-1/2"
             >
               <span className="material-symbols-outlined text-on-surface-variant text-[18px]">close</span>
@@ -139,7 +119,7 @@ export function LocationPicker({ currentCity, isDenied, onSave, onRequestGeo, on
 
         {/* Autocomplete dropdown */}
         {showDropdown && predictions.length > 0 && (
-          <div className="mb-3 bg-surface-container-high border border-white/10 rounded-2xl overflow-hidden">
+          <div className="mb-4 bg-surface-container-high border border-white/10 rounded-2xl overflow-hidden">
             {predictions.slice(0, 5).map((pred, i) => (
               <button
                 key={pred.place_id}
@@ -167,26 +147,10 @@ export function LocationPicker({ currentCity, isDenied, onSave, onRequestGeo, on
           </div>
         )}
 
-        {/* Selected place chip */}
-        {selected && (
-          <div className="flex items-center gap-3 mb-3 bg-primary/10 border border-primary/20 rounded-2xl px-4 py-2.5">
-            <span
-              className="material-symbols-outlined text-primary text-[20px] shrink-0"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              check_circle
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-primary truncate">{selected.name}</p>
-              <p className="text-xs text-on-surface-variant truncate">{selected.formatted_address}</p>
-            </div>
-          </div>
-        )}
-
         {/* Current location button */}
         <button
           onClick={() => { onRequestGeo(); onClose(); }}
-          className="w-full flex items-center gap-3 bg-surface-container-high border border-white/10 rounded-2xl px-4 py-3 mb-4 active:scale-[0.98] active:bg-surface-container-highest transition-all"
+          className="w-full flex items-center gap-3 bg-surface-container-high border border-white/10 rounded-2xl px-4 py-3 active:scale-[0.98] active:bg-surface-container-highest transition-all"
         >
           <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
             <span
@@ -209,24 +173,11 @@ export function LocationPicker({ currentCity, isDenied, onSave, onRequestGeo, on
           </span>
         </button>
 
-        {/* Current setting hint */}
-        {currentCity && !selected && (
-          <p className="text-xs text-on-surface-variant text-center mb-3">
+        {currentCity && (
+          <p className="text-xs text-on-surface-variant text-center mt-4">
             現在の設定：<span className="text-primary font-semibold">{currentCity}</span>
           </p>
         )}
-        </div>{/* end scrollable */}
-
-        {/* Fixed apply button */}
-        <div className="px-5 pt-3 pb-8 border-t border-white/5">
-          <button
-            onClick={handleApply}
-            disabled={!canApply}
-            className="w-full bg-primary text-white font-bold py-3.5 rounded-2xl text-sm disabled:opacity-40 active:scale-95 transition-all"
-          >
-            適用する
-          </button>
-        </div>
       </div>
     </>
   );
