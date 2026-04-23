@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import StorePopup from '@/components/map/StorePopup';
+import { useLocation } from '@/hooks/useLocation';
 import { StoreWithDistance } from '@/types';
 
 const StoreMap = dynamic(() => import('@/components/map/StoreMap'), {
@@ -26,6 +27,8 @@ function formatDistance(meters: number) {
 
 export default function MapPage() {
   const t = useTranslations();
+  const { coords: savedCoords, isLoading: locationLoading } = useLocation();
+  const locationInitialized = useRef(false);
   const [center, setCenter] = useState(DEFAULT_CENTER);
   const [searchCenter, setSearchCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [stores, setStores] = useState<StoreWithDistance[]>([]);
@@ -56,6 +59,16 @@ export default function MapPage() {
   }, []);
 
   useEffect(() => {
+    if (locationLoading) return;
+    if (locationInitialized.current) return;
+    locationInitialized.current = true;
+
+    if (savedCoords) {
+      setCenter(savedCoords);
+      setSearchCenter(savedCoords);
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -66,7 +79,7 @@ export default function MapPage() {
         setSearchCenter(DEFAULT_CENTER);
       }
     );
-  }, []);
+  }, [locationLoading, savedCoords]);
 
   useEffect(() => {
     if (!searchCenter) return;

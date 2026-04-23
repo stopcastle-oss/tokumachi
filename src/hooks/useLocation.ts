@@ -4,22 +4,36 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
 import { createClient } from '@/lib/supabase/client';
 
-const STORAGE_KEY = 'tm_location';
+const STORAGE_KEY = 'tm_location_v2';
+
+interface StoredLocation {
+  city: string;
+  lat?: number;
+  lng?: number;
+}
 
 export function useLocation() {
   const { user } = useAuth();
   const [city, setCity] = useState<string | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDenied, setIsDenied] = useState(false);
 
-  const saveCity = useCallback(async (cityName: string) => {
+  const saveLocation = useCallback(async (cityName: string, lat?: number, lng?: number) => {
     setCity(cityName);
-    localStorage.setItem(STORAGE_KEY, cityName);
+    if (lat !== undefined && lng !== undefined) {
+      setCoords({ lat, lng });
+    }
+    const stored: StoredLocation = { city: cityName, lat, lng };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     if (user) {
       const supabase = createClient();
       await supabase.from('profiles').update({ city: cityName }).eq('id', user.id);
     }
   }, [user]);
+
+  // Alias for backward compat
+  const saveCity = useCallback((cityName: string) => saveLocation(cityName), [saveLocation]);
 
   const reverseGeocode = useCallback(async (lat: number, lng: number): Promise<string | null> => {
     try {
@@ -48,8 +62,10 @@ export function useLocation() {
     setIsDenied(false);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const name = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-        if (name) await saveCity(name);
+        const { latitude: lat, longitude: lng } = pos.coords;
+        const name = await reverseGeocode(lat, lng);
+        if (name) await saveLocation(name, lat, lng);
+        setCoords({ lat, lng });
         setIsLoading(false);
       },
       () => {
@@ -58,22 +74,26 @@ export function useLocation() {
       },
       { timeout: 8000 }
     );
-  }, [reverseGeocode, saveCity]);
+  }, [reverseGeocode, saveLocation]);
 
   useEffect(() => {
-    // 1. localStorage 우선
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      setCity(stored);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      try {
+        const parsed: StoredLocation = JSON.parse(raw);
+        setCity(parsed.city);
+        if (parsed.lat !== undefined && parsed.lng !== undefined) {
+          setCoords({ lat: parsed.lat, lng: parsed.lng });
+        }
+      } catch {
+        setCity(raw);
+      }
       setIsLoading(false);
       return;
     }
-    // 2. 프로필 city
-    // (profile은 useAuth에서 오므로 Header에서 처리)
-    // 3. Geolocation 요청
     requestLocation();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { city, isLoading, isDenied, requestLocation, saveCity };
+  return { city, coords, isLoading, isDenied, requestLocation, saveCity, saveLocation };
 }

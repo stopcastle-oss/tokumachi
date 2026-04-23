@@ -12,7 +12,7 @@ export const Header = () => {
   const { user, profile, logout } = useAuth();
   const { todayCount } = useDashboardStore();
   const locale = useLocale();
-  const { city, isLoading, isDenied, requestLocation, saveCity } = useLocation();
+  const { city, isLoading, isDenied, requestLocation, saveLocation } = useLocation();
   const [showPicker, setShowPicker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -119,7 +119,7 @@ export const Header = () => {
         <LocationPicker
           currentCity={displayCity}
           isDenied={isDenied}
-          onSave={saveCity}
+          onSave={saveLocation}
           onRequestGeo={requestLocation}
           onClose={() => setShowPicker(false)}
         />
