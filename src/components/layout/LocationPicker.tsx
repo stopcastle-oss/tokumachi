@@ -121,7 +121,7 @@ export function LocationPicker({ currentCity, isDenied, onSave, onRequestGeo, on
             value={input}
             onChange={(e) => handleInputChange(e.target.value)}
             placeholder="例：渋谷区、新宿区、大阪市..."
-            className="w-full bg-surface-container-high border border-white/10 rounded-2xl pl-10 pr-10 py-3 text-sm text-on-background placeholder:text-on-surface-variant/50 outline-none focus:border-primary/60 transition-colors"
+            className="w-full bg-surface-container-high border border-white/10 rounded-2xl pl-10 pr-10 py-3 text-on-background placeholder:text-on-surface-variant/50 outline-none focus:border-primary/60 transition-colors text-base"
           />
           {isSearching ? (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
