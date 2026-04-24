@@ -22,7 +22,7 @@ export async function PATCH(
 
   const { data: original, error: fetchError } = await svc
     .from('price_entries')
-    .select('store_id, item_id, price')
+    .select('store_id, item_id, price, created_at')
     .eq('id', entryId)
     .single();
 
@@ -34,13 +34,19 @@ export async function PATCH(
     return NextResponse.json({ error: '現在と同じ価格は登録できません' }, { status: 400 });
   }
 
+  const ageMs = Date.now() - new Date(original.created_at).getTime();
+  const withinOneHour = ageMs < 60 * 60 * 1000;
+
   const { count } = await svc
     .from('price_verifications')
     .select('id', { count: 'exact', head: true })
     .eq('price_entry_id', entryId);
 
-  if ((count ?? 0) > 0) {
-    return NextResponse.json({ error: '評価済みの価格は修正できません' }, { status: 403 });
+  const hasVerifications = (count ?? 0) > 0;
+
+  if (hasVerifications || !withinOneHour) {
+    const reason = hasVerifications ? '評価済みの価格は修正できません' : '登録から1時間を過ぎた価格は修正できません';
+    return NextResponse.json({ error: reason }, { status: 403 });
   }
 
   const { data: newEntry, error } = await svc

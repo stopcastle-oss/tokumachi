@@ -244,21 +244,25 @@ export default function EntryDetailPage() {
               <span className="text-4xl font-extrabold text-primary">{entry.price.toLocaleString()}</span>
               <span className="text-lg text-on-surface-variant font-bold">円</span>
             </div>
-            {user && entry.total_verifications === 0 && (
-              <button
-                onClick={() => { setEditingPrice(true); setNewPrice(String(entry.price)); }}
-                className="flex items-center gap-1.5 bg-surface-container-high px-3 py-2 rounded-xl text-xs font-bold text-on-surface-variant hover:text-on-background transition-colors"
-              >
-                <span className="material-symbols-outlined text-[16px]">edit</span>
-                価格を修正
-              </button>
-            )}
-            {user && entry.total_verifications > 0 && (
-              <span className="flex items-center gap-1 text-[10px] text-on-surface-variant/40">
-                <span className="material-symbols-outlined text-[12px]">lock</span>
-                評価済み
-              </span>
-            )}
+            {user && (() => {
+              const withinOneHour = Date.now() - new Date(entry.created_at).getTime() < 60 * 60 * 1000;
+              const canEdit = entry.total_verifications === 0 && withinOneHour;
+              const lockReason = entry.total_verifications > 0 ? '評価済み' : '1時間経過';
+              return canEdit ? (
+                <button
+                  onClick={() => { setEditingPrice(true); setNewPrice(String(entry.price)); }}
+                  className="flex items-center gap-1.5 bg-surface-container-high px-3 py-2 rounded-xl text-xs font-bold text-on-surface-variant hover:text-on-background transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">edit</span>
+                  価格を修正
+                </button>
+              ) : (
+                <span className="flex items-center gap-1 text-[10px] text-on-surface-variant/40">
+                  <span className="material-symbols-outlined text-[12px]">lock</span>
+                  {lockReason}
+                </span>
+              );
+            })()}
           </div>
         )}
       </div>
