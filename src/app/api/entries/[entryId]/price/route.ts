@@ -34,6 +34,15 @@ export async function PATCH(
     return NextResponse.json({ error: '現在と同じ価格は登録できません' }, { status: 400 });
   }
 
+  const { count } = await svc
+    .from('price_verifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('price_entry_id', entryId);
+
+  if ((count ?? 0) > 0) {
+    return NextResponse.json({ error: '評価済みの価格は修正できません' }, { status: 403 });
+  }
+
   const { data: newEntry, error } = await svc
     .from('price_entries')
     .insert({
