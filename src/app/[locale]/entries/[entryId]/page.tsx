@@ -201,20 +201,27 @@ export default function EntryDetailPage() {
         )}
         {editingPrice ? (
           <div className="flex items-center gap-3">
-            <div className="flex-1 relative">
+            <div className="flex-1 relative pb-5">
               <input
                 type="number"
                 value={newPrice}
                 onChange={(e) => setNewPrice(e.target.value)}
                 placeholder={String(entry.price)}
                 autoFocus
-                className="w-full bg-surface-container-high border border-primary/40 rounded-xl px-4 py-2.5 text-on-background text-xl font-bold focus:outline-none focus:border-primary"
+                className={`w-full bg-surface-container-high border rounded-xl px-4 py-2.5 text-on-background text-xl font-bold focus:outline-none transition-colors ${
+                  newPrice && Number(newPrice) === entry.price
+                    ? 'border-error/60 focus:border-error'
+                    : 'border-primary/40 focus:border-primary'
+                }`}
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-sm">円</span>
             </div>
+            {newPrice && Number(newPrice) === entry.price && (
+              <p className="absolute -bottom-5 left-0 text-[10px] text-error">現在と同じ価格です</p>
+            )}
             <button
               onClick={handlePriceSubmit}
-              disabled={priceSubmitting || !newPrice}
+              disabled={priceSubmitting || !newPrice || Number(newPrice) === entry.price}
               className="bg-primary text-white px-4 py-2.5 rounded-xl font-bold text-sm disabled:opacity-50 flex items-center gap-1.5"
             >
               {priceSubmitting ? (

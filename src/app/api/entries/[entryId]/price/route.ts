@@ -22,12 +22,16 @@ export async function PATCH(
 
   const { data: original, error: fetchError } = await svc
     .from('price_entries')
-    .select('store_id, item_id')
+    .select('store_id, item_id, price')
     .eq('id', entryId)
     .single();
 
   if (fetchError || !original) {
     return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
+  }
+
+  if (Math.round(price) === original.price) {
+    return NextResponse.json({ error: '現在と同じ価格は登録できません' }, { status: 400 });
   }
 
   const { data: newEntry, error } = await svc
