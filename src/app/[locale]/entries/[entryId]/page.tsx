@@ -64,6 +64,7 @@ export default function EntryDetailPage() {
 
   // Verify state
   const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -84,6 +85,8 @@ export default function EntryDetailPage() {
 
   const handleVerify = async (isCorrect: boolean) => {
     if (!user) { router.push(`/${locale}/login`); return; }
+    setVerifyError(null);
+
     if (entry?.user_vote === isCorrect) {
       // Toggle off
       setVerifyLoading(true);
@@ -95,15 +98,25 @@ export default function EntryDetailPage() {
       setVerifyLoading(false);
       return;
     }
+
     setVerifyLoading(true);
     const res = await fetch(`/api/entries/${entryId}/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_correct: isCorrect }),
     });
+
     if (res.ok) {
       const data = await res.json();
       setEntry((prev) => prev ? { ...prev, ...data } : prev);
+      // 価格が違うと評価した場合、価格修正UIを自動で開く
+      if (!isCorrect) {
+        setEditingPrice(true);
+        setNewPrice('');
+      }
+    } else {
+      const err = await res.json();
+      setVerifyError(err.error || '評価に失敗しました');
     }
     setVerifyLoading(false);
   };
@@ -180,6 +193,12 @@ export default function EntryDetailPage() {
       {/* Current Price */}
       <div className="mx-5 mt-3 bg-surface-container rounded-2xl px-4 py-4 border border-white/5">
         <p className="text-xs text-on-surface-variant/60 font-medium mb-2">現在の価格</p>
+        {editingPrice && entry.user_vote === false && (
+          <div className="mb-2 flex items-center gap-1.5 text-xs text-error font-medium">
+            <span className="material-symbols-outlined text-[14px]">edit_note</span>
+            正しい価格を入力して修正してください
+          </div>
+        )}
         {editingPrice ? (
           <div className="flex items-center gap-3">
             <div className="flex-1 relative">
@@ -304,6 +323,11 @@ export default function EntryDetailPage() {
 
       {/* Verify Buttons */}
       <div className="mx-5 mt-3">
+        {verifyError && (
+          <div className="mb-3 px-4 py-3 bg-error/10 border border-error/20 rounded-2xl">
+            <p className="text-sm text-error font-medium text-center">{verifyError}</p>
+          </div>
+        )}
         {!user ? (
           <button
             onClick={() => router.push(`/${locale}/login`)}
