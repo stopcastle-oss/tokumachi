@@ -8,7 +8,10 @@ export async function GET() {
     const supabase = createServiceClient();
 
     // Call the dashboard stats function
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    console.log('[dashboard] supabase url:', supabaseUrl);
     const { data, error } = await supabase.rpc('get_dashboard_stats');
+    console.log('[dashboard] rpc result:', JSON.stringify(data));
 
     if (error) {
       console.error('Dashboard stats error:', error);
