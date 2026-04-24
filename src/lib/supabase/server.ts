@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 export const createClient = async () => {
@@ -30,19 +31,10 @@ export const createClient = async () => {
 
 // For server-only operations using service role key
 export const createServiceClient = () => {
-  return createServerClient(
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return [];
-        },
-        setAll() {
-          // No-op for service client
-        },
-      },
-    }
+    { auth: { persistSession: false } }
   );
 };
 
