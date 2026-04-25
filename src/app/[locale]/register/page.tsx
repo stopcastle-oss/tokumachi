@@ -312,11 +312,10 @@ export default function RegisterPage() {
         </div>
 
         {/* store list 하단 여백 — fixed CTA 높이만큼 */}
-        <div className="h-20" />
+        <div className="h-32" />
 
-        {/* Fixed CTA */}
-        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 pt-3 bg-background border-t border-white/5 z-50"
-          style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+        {/* Fixed CTA — BottomNav(약 64px) 위에 표시 */}
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 z-40">
           {selectedStore ? (
             <button
               onClick={() => setStep('item')}
