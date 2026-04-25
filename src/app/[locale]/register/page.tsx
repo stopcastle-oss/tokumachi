@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 
 interface StoreResult {
@@ -21,153 +22,130 @@ interface ItemResult {
 
 type Step = 'store' | 'item' | 'price' | 'done';
 
-// Custom supermarket marker SVG (cart icon, blue pin)
-const STORE_MARKER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44">
-  <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 26 18 26s18-12.5 18-26C36 8.06 27.94 0 18 0z" fill="#3B82F6" stroke="white" stroke-width="1.5"/>
-  <text x="18" y="24" text-anchor="middle" font-size="16" fill="white">🛒</text>
-</svg>`;
-
-const STORE_MARKER_SELECTED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="42" height="52" viewBox="0 0 42 52">
-  <path d="M21 0C9.4 0 0 9.4 0 21c0 15.75 21 31 21 31s21-15.25 21-31C42 9.4 32.6 0 21 0z" fill="#EF4444" stroke="white" stroke-width="2"/>
-  <text x="21" y="28" text-anchor="middle" font-size="18" fill="white">🛒</text>
-</svg>`;
-
-const svgToUrl = (svg: string) =>
-  `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+const DARK_MAP_STYLES: google.maps.MapTypeStyle[] = [
+  { elementType: 'geometry', stylers: [{ color: '#1a1a1a' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#a0a0a0' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a1a' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2c2c2c' }] },
+  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#383838' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#484848' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d1117' }] },
+  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#2a2a2a' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#222222' }] },
+  { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#1a2a1a' }] },
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#333333' }] },
+];
 
 export default function RegisterPage() {
   useProtectedRoute();
   const router = useRouter();
+  const locale = useLocale();
   const [step, setStep] = useState<Step>('store');
 
-  // Map
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
+  const userMarkerRef = useRef<google.maps.Marker | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [nearbyStores, setNearbyStores] = useState<StoreResult[]>([]);
   const [selectedStore, setSelectedStore] = useState<StoreResult | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationError, setLocationError] = useState(false);
-  const userMarkerRef = useRef<google.maps.Marker | null>(null);
 
-  // Item step
   const [itemQuery, setItemQuery] = useState('');
   const [items, setItems] = useState<ItemResult[]>([]);
   const [selectedItem, setSelectedItem] = useState<ItemResult | null>(null);
 
-  // Price step
   const [price, setPrice] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ points_awarded: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Init Google Maps
+  const initMap = useCallback((center: { lat: number; lng: number }) => {
+    if (!mapRef.current || mapInstanceRef.current) return;
+    const map = new google.maps.Map(mapRef.current, {
+      center,
+      zoom: 15,
+      disableDefaultUI: true,
+      zoomControl: false,
+      styles: DARK_MAP_STYLES,
+    });
+    mapInstanceRef.current = map;
+    setMapReady(true);
+  }, []);
+
+  const placeUserMarker = useCallback((loc: { lat: number; lng: number }) => {
+    if (!mapInstanceRef.current) return;
+    if (userMarkerRef.current) userMarkerRef.current.setMap(null);
+    userMarkerRef.current = new google.maps.Marker({
+      position: loc,
+      map: mapInstanceRef.current,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 7,
+        fillColor: '#ffffff',
+        fillOpacity: 1,
+        strokeColor: '#ff5722',
+        strokeWeight: 2.5,
+      },
+      zIndex: 999,
+    });
+  }, []);
+
   useEffect(() => {
-    const initMap = () => {
-      if (!mapRef.current || mapInstanceRef.current) return;
-
-      // Default: Tokyo
-      const defaultCenter = { lat: 35.6762, lng: 139.6503 };
-
-      const map = new google.maps.Map(mapRef.current, {
-        center: defaultCenter,
-        zoom: 15,
-        disableDefaultUI: true,
-        zoomControl: true,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: false,
-        styles: [
-          { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-        ],
-      });
-
-      mapInstanceRef.current = map;
-      setMapReady(true);
-
-      // Get user location
+    const DEFAULT = { lat: 35.6762, lng: 139.6503 };
+    const load = () => {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           setUserLocation(loc);
-          map.setCenter(loc);
-          map.setZoom(15);
-
-          // User location dot
-          if (userMarkerRef.current) userMarkerRef.current.setMap(null);
-          userMarkerRef.current = new google.maps.Marker({
-            position: loc,
-            map,
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 8,
-              fillColor: '#3B82F6',
-              fillOpacity: 1,
-              strokeColor: 'white',
-              strokeWeight: 2,
-            },
-            zIndex: 999,
-          });
+          initMap(loc);
+          setTimeout(() => placeUserMarker(loc), 100);
         },
-        (err) => {
-          console.warn('Geolocation error:', err.code, err.message);
-          setLocationError(true);
-          setUserLocation(defaultCenter);
+        () => {
+          setUserLocation(DEFAULT);
+          initMap(DEFAULT);
         },
-        { timeout: 10000, maximumAge: 60000 }
+        { timeout: 8000 }
       );
     };
 
     if (window.google?.maps) {
-      initMap();
+      load();
     } else {
       const script = document.createElement('script');
       script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places`;
       script.async = true;
-      script.onload = initMap;
+      script.onload = load;
       document.head.appendChild(script);
     }
-  }, []);
+  }, [initMap, placeUserMarker]);
 
-  // Search nearby supermarkets
   const searchNearbyStores = useCallback((location: { lat: number; lng: number }) => {
     if (!mapInstanceRef.current) return;
-
-    const service = new google.maps.places.PlacesService(mapInstanceRef.current);
-    service.nearbySearch(
-      {
-        location,
-        radius: 1500,
-        type: 'supermarket',
-      },
+    const svc = new google.maps.places.PlacesService(mapInstanceRef.current);
+    svc.nearbySearch(
+      { location, radius: 1500, type: 'supermarket' },
       (results, status) => {
         if (status !== google.maps.places.PlacesServiceStatus.OK || !results) return;
-
-        const stores: StoreResult[] = results.slice(0, 20).map(p => ({
+        setNearbyStores(results.slice(0, 20).map(p => ({
           place_id: p.place_id!,
           name: p.name!,
           address: p.vicinity || '',
           lat: p.geometry!.location!.lat(),
           lng: p.geometry!.location!.lng(),
-        }));
-
-        setNearbyStores(stores);
+        })));
       }
     );
   }, []);
 
   useEffect(() => {
-    if (mapReady && userLocation) {
-      searchNearbyStores(userLocation);
-    }
+    if (mapReady && userLocation) searchNearbyStores(userLocation);
   }, [mapReady, userLocation, searchNearbyStores]);
 
-  // Place markers on map
+  // Update markers
   useEffect(() => {
     if (!mapInstanceRef.current || nearbyStores.length === 0) return;
-
-    // Clear old markers
     markersRef.current.forEach(m => m.setMap(null));
     markersRef.current = [];
 
@@ -178,30 +156,31 @@ export default function RegisterPage() {
         map: mapInstanceRef.current!,
         title: store.name,
         icon: {
-          url: svgToUrl(isSelected ? STORE_MARKER_SELECTED_SVG : STORE_MARKER_SVG),
-          scaledSize: new google.maps.Size(isSelected ? 42 : 36, isSelected ? 52 : 44),
-          anchor: new google.maps.Point(isSelected ? 21 : 18, isSelected ? 52 : 44),
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: isSelected ? 11 : 8,
+          fillColor: isSelected ? '#ff5722' : '#ff5722',
+          fillOpacity: isSelected ? 1 : 0.7,
+          strokeColor: '#ffffff',
+          strokeWeight: isSelected ? 2.5 : 1.5,
         },
         zIndex: isSelected ? 100 : 1,
       });
-
       marker.addListener('click', () => {
         setSelectedStore(store);
         mapInstanceRef.current?.panTo({ lat: store.lat, lng: store.lng });
       });
-
       markersRef.current.push(marker);
     });
   }, [nearbyStores, selectedStore]);
 
-  // Item search
   useEffect(() => {
-    const fetchItems = async () => {
+    if (step !== 'item') return;
+    const t = setTimeout(async () => {
       const res = await fetch(`/api/items/search?q=${encodeURIComponent(itemQuery)}`);
       const data = await res.json();
       setItems(data.items || []);
-    };
-    if (step === 'item') fetchItems();
+    }, 250);
+    return () => clearTimeout(t);
   }, [itemQuery, step]);
 
   const handleSubmit = async () => {
@@ -234,175 +213,214 @@ export default function RegisterPage() {
   };
 
   const stepIndex = { store: 0, item: 1, price: 2, done: 3 }[step];
+  const steps = ['マート', '商品', '価格'];
 
-  return (
-    <div className="flex flex-col h-[calc(100vh-120px)]">
-      {/* Step indicator */}
-      {step !== 'done' && (
-        <div className="flex items-center px-4 py-3 border-b border-gray-100 bg-white shrink-0">
-          {[{ label: 'スーパー', icon: '🏪' }, { label: '品目', icon: '🛍️' }, { label: '価格', icon: '💴' }].map(({ label, icon }, i) => (
-            <div key={i} className="flex items-center">
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${i === stepIndex ? 'bg-blue-500 text-white' : i < stepIndex ? 'bg-blue-100 text-blue-600' : 'text-gray-400'}`}>
-                <span>{icon}</span>
-                <span>{label}</span>
+  // ── Store step ──
+  if (step === 'store') {
+    return (
+      <div className="flex flex-col h-[calc(100dvh-64px)] bg-background">
+        {/* Step bar */}
+        <div className="shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-white/5">
+          {steps.map((label, i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-colors ${
+                i === stepIndex ? 'bg-primary text-white' : i < stepIndex ? 'bg-primary/20 text-primary' : 'bg-surface-container text-on-surface-variant/40'
+              }`}>
+                <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-extrabold ${
+                  i === stepIndex ? 'bg-white/20' : ''
+                }`}>{i + 1}</span>
+                {label}
               </div>
-              {i < 2 && <div className={`w-6 h-px mx-1 ${i < stepIndex ? 'bg-blue-300' : 'bg-gray-200'}`} />}
+              {i < 2 && <div className={`w-4 h-px ${i < stepIndex ? 'bg-primary/40' : 'bg-white/10'}`} />}
             </div>
           ))}
         </div>
-      )}
 
-      {/* Step 1: Map with nearby stores */}
-      {step === 'store' && (
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {/* Map */}
-          <div className="relative flex-1">
-            <div ref={mapRef} className="w-full h-full" />
-            {locationError && (
-              <div className="absolute top-3 left-3 right-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 flex items-center gap-2 shadow-sm z-10">
-                <span className="text-orange-500">📍</span>
-                <p className="text-sm text-orange-700 flex-1">位置情報を取得できませんでした。東京を表示中。</p>
-                <button
-                  onClick={() => {
-                    setLocationError(false);
-                    navigator.geolocation.getCurrentPosition(
-                      (pos) => {
-                        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                        setUserLocation(loc);
-                        mapInstanceRef.current?.setCenter(loc);
-                        mapInstanceRef.current?.setZoom(15);
-                      },
-                      () => setLocationError(true),
-                      { timeout: 10000, maximumAge: 60000 }
-                    );
-                  }}
-                  className="text-xs text-orange-600 font-medium underline shrink-0"
-                >
-                  再試行
-                </button>
-              </div>
-            )}
-            {/* Current location button */}
+        {/* Map 55% */}
+        <div className="relative" style={{ height: '52%' }}>
+          <div ref={mapRef} className="w-full h-full" />
+          {/* Recenter button */}
+          {userLocation && (
             <button
               onClick={() => {
-                setLocationError(false);
-                navigator.geolocation.getCurrentPosition(
-                  (pos) => {
-                    const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    setUserLocation(loc);
-                    mapInstanceRef.current?.setCenter(loc);
-                    mapInstanceRef.current?.setZoom(15);
-                    if (userMarkerRef.current) userMarkerRef.current.setMap(null);
-                    userMarkerRef.current = new google.maps.Marker({
-                      position: loc,
-                      map: mapInstanceRef.current!,
-                      icon: {
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: 8,
-                        fillColor: '#3B82F6',
-                        fillOpacity: 1,
-                        strokeColor: 'white',
-                        strokeWeight: 2,
-                      },
-                      zIndex: 999,
-                    });
-                  },
-                  (err) => {
-                    console.warn('Geolocation retry error:', err.code);
-                    setLocationError(true);
-                  },
-                  { timeout: 10000, maximumAge: 60000 }
-                );
+                mapInstanceRef.current?.panTo(userLocation);
+                mapInstanceRef.current?.setZoom(15);
               }}
-              className="absolute bottom-4 right-4 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center border border-gray-200 hover:bg-gray-50 z-10"
+              className="absolute bottom-3 right-3 w-9 h-9 bg-surface-container border border-white/10 rounded-xl flex items-center justify-center shadow-lg z-10"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
-                <circle cx="12" cy="12" r="8" strokeDasharray="2 2"/>
-              </svg>
+              <span className="material-symbols-outlined text-on-surface-variant text-[18px]">my_location</span>
+            </button>
+          )}
+          {nearbyStores.length > 0 && !selectedStore && (
+            <div className="absolute top-3 left-3 bg-surface-container/90 border border-white/10 rounded-xl px-3 py-1.5 z-10">
+              <p className="text-xs text-on-surface-variant font-medium">{nearbyStores.length}件 · タップして選択</p>
+            </div>
+          )}
+        </div>
+
+        {/* Store list 45% */}
+        <div className="flex-1 overflow-y-auto border-t border-white/5">
+          {nearbyStores.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-2" />
+                <p className="text-xs text-on-surface-variant/50">近くのスーパーを検索中...</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="px-4 py-2 bg-surface-container border-b border-white/5 sticky top-0 z-10">
+                <p className="text-xs font-bold text-on-surface-variant">近くのスーパー {nearbyStores.length}件</p>
+              </div>
+              {nearbyStores.map(store => (
+                <button
+                  key={store.place_id}
+                  onClick={() => {
+                    setSelectedStore(store);
+                    mapInstanceRef.current?.panTo({ lat: store.lat, lng: store.lng });
+                  }}
+                  className={`w-full flex items-center px-4 py-3.5 border-b border-white/5 text-left transition-colors ${
+                    selectedStore?.place_id === store.place_id ? 'bg-primary/10' : 'active:bg-surface-container'
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-xl bg-surface-container flex items-center justify-center shrink-0 mr-3">
+                    <span className="material-symbols-outlined text-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>store</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-on-background truncate">{store.name}</p>
+                    <p className="text-xs text-on-surface-variant/60 truncate mt-0.5">{store.address}</p>
+                  </div>
+                  {selectedStore?.place_id === store.place_id && (
+                    <span className="material-symbols-outlined text-primary text-[20px] shrink-0 ml-2">check_circle</span>
+                  )}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* CTA */}
+        {selectedStore && (
+          <div className="shrink-0 px-4 py-3 border-t border-white/5 bg-background">
+            <button
+              onClick={() => setStep('item')}
+              className="w-full py-3.5 bg-primary text-white font-bold rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-900/40 active:scale-95 transition-transform"
+            >
+              <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>store</span>
+              {selectedStore.name} で登録する
+              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </button>
           </div>
+        )}
+      </div>
+    );
+  }
 
-          {/* Bottom sheet */}
-          <div className="bg-white border-t border-gray-200 px-4 py-4 shrink-0 shadow-lg">
-            {selectedStore ? (
-              <>
-                <div className="flex items-start gap-3 mb-4">
-                  <span className="text-2xl">🛒</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-900 truncate">{selectedStore.name}</p>
-                    <p className="text-sm text-gray-500 truncate">{selectedStore.address}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setStep('item')}
-                  className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-colors"
-                >
-                  このスーパーで登録する →
-                </button>
-              </>
-            ) : (
-              <div className="text-center py-2">
-                <p className="text-gray-500 text-sm">
-                  {nearbyStores.length > 0
-                    ? `${nearbyStores.length}件のスーパーが見つかりました。マーカーをタップして選択`
-                    : '位置情報を取得中...'}
-                </p>
+  // ── Item step ──
+  if (step === 'item') {
+    return (
+      <div className="flex flex-col h-[calc(100dvh-64px)] bg-background">
+        <div className="shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-white/5">
+          {steps.map((label, i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                i === stepIndex ? 'bg-primary text-white' : i < stepIndex ? 'bg-primary/20 text-primary' : 'bg-surface-container text-on-surface-variant/40'
+              }`}>
+                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-extrabold">{i + 1}</span>
+                {label}
               </div>
-            )}
+              {i < 2 && <div className={`w-4 h-px ${i < stepIndex ? 'bg-primary/40' : 'bg-white/10'}`} />}
+            </div>
+          ))}
+        </div>
+
+        <div className="shrink-0 px-4 py-3 border-b border-white/5">
+          <div className="flex items-center gap-2 text-xs text-on-surface-variant/60 mb-3">
+            <span className="material-symbols-outlined text-primary text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>store</span>
+            {selectedStore?.name}
+          </div>
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[20px]">search</span>
+            <input
+              type="text"
+              value={itemQuery}
+              onChange={e => setItemQuery(e.target.value)}
+              placeholder="例：卵、牛乳、キャベツ..."
+              autoFocus
+              className="w-full bg-surface-container border border-white/10 rounded-2xl pl-10 pr-4 py-3 text-base text-on-background placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary/50 transition-colors"
+            />
           </div>
         </div>
-      )}
 
-      {/* Step 2: Item */}
-      {step === 'item' && (
-        <div className="flex flex-col flex-1 overflow-hidden px-4 py-4 bg-white">
-          <p className="text-sm text-gray-500 mb-4">
-            <span className="font-medium text-gray-900">{selectedStore?.name}</span> で登録する品目を選択
-          </p>
-          <input
-            type="text"
-            value={itemQuery}
-            onChange={e => setItemQuery(e.target.value)}
-            placeholder="例：卵、牛乳、キャベツ..."
-            autoFocus
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 mb-3"
-          />
-          <div className="flex-1 overflow-y-auto space-y-1">
-            {items.map(item => (
-              <button key={item.id}
-                onClick={() => {
-                  setSelectedItem(item);
-                  setStep('price');
-                  fetch(`/api/items/${item.id}`, { method: 'POST' }).catch(() => {});
-                }}
-                className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                <span className="font-medium text-sm">{item.name_ja}</span>
-                <span className="ml-2 text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{item.unit}</span>
-              </button>
-            ))}
-          </div>
-          <button onClick={() => setStep('store')} className="mt-3 text-sm text-gray-400 hover:text-gray-600">
-            ← 戻る
+        <div className="flex-1 overflow-y-auto px-4 py-2">
+          {items.map(item => (
+            <button
+              key={item.id}
+              onClick={() => {
+                setSelectedItem(item);
+                setStep('price');
+                fetch(`/api/items/${item.id}`, { method: 'POST' }).catch(() => {});
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3.5 mb-2 bg-surface-container border border-white/5 rounded-2xl text-left active:bg-surface-container-high transition-colors"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-on-background text-sm">{item.name_ja}</p>
+                <p className="text-xs text-on-surface-variant/60 mt-0.5">{item.category}</p>
+              </div>
+              <span className="text-xs text-on-surface-variant/50 bg-surface-container-high px-2 py-0.5 rounded-lg shrink-0">{item.unit}</span>
+              <span className="material-symbols-outlined text-on-surface-variant/30 text-[18px]">chevron_right</span>
+            </button>
+          ))}
+          {items.length === 0 && itemQuery && (
+            <div className="text-center py-10">
+              <p className="text-on-surface-variant/50 text-sm">「{itemQuery}」が見つかりません</p>
+            </div>
+          )}
+        </div>
+
+        <div className="shrink-0 px-4 py-3 border-t border-white/5">
+          <button onClick={() => setStep('store')} className="flex items-center gap-1.5 text-sm text-on-surface-variant/60">
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            マートを変更
           </button>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {/* Step 3: Price */}
-      {step === 'price' && (
-        <div className="flex flex-col px-4 py-6 bg-white flex-1">
-          <div className="bg-gray-50 rounded-xl p-4 mb-6">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <span>🏪</span><span>{selectedStore?.name}</span>
+  // ── Price step ──
+  if (step === 'price') {
+    return (
+      <div className="flex flex-col h-[calc(100dvh-64px)] bg-background">
+        <div className="shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-white/5">
+          {steps.map((label, i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                i === stepIndex ? 'bg-primary text-white' : i < stepIndex ? 'bg-primary/20 text-primary' : 'bg-surface-container text-on-surface-variant/40'
+              }`}>
+                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-extrabold">{i + 1}</span>
+                {label}
+              </div>
+              {i < 2 && <div className={`w-4 h-px ${i < stepIndex ? 'bg-primary/40' : 'bg-white/10'}`} />}
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span>🛍️</span><span>{selectedItem?.name_ja} ({selectedItem?.unit})</span>
+          ))}
+        </div>
+
+        <div className="flex-1 px-5 py-6">
+          <div className="bg-surface-container border border-white/5 rounded-2xl px-4 py-3.5 mb-6 space-y-2">
+            <div className="flex items-center gap-2 text-xs text-on-surface-variant/60">
+              <span className="material-symbols-outlined text-primary text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>store</span>
+              <span className="truncate">{selectedStore?.name}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-on-surface-variant/60">
+              <span className="material-symbols-outlined text-primary text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>shopping_bag</span>
+              <span>{selectedItem?.name_ja} · {selectedItem?.unit}</span>
             </div>
           </div>
 
-          <label className="text-sm font-medium text-gray-700 mb-2">税込み価格を入力</label>
+          <p className="text-xs text-on-surface-variant/60 font-medium mb-2">税込み価格</p>
           <div className="relative mb-6">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-xl font-bold">¥</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold text-xl">¥</span>
             <input
               type="number"
               value={price}
@@ -410,53 +428,72 @@ export default function RegisterPage() {
               placeholder="0"
               min="1"
               autoFocus
-              className="w-full border-2 border-gray-200 focus:border-blue-500 rounded-xl pl-10 pr-4 py-5 text-3xl font-bold focus:outline-none transition-colors"
+              className="w-full bg-surface-container border-2 border-white/10 focus:border-primary/60 rounded-2xl pl-10 pr-4 py-5 text-3xl font-extrabold text-on-background focus:outline-none transition-colors"
             />
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">{error}</div>
+            <div className="mb-4 px-4 py-3 bg-error/10 border border-error/20 text-error rounded-2xl text-sm">{error}</div>
           )}
 
           <button
             disabled={!price || Number(price) <= 0 || submitting}
             onClick={handleSubmit}
-            className="w-full py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white text-lg font-bold rounded-xl transition-colors"
+            className="w-full py-4 bg-primary text-white text-base font-bold rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2 shadow-lg shadow-orange-900/40 active:scale-95 transition-all"
           >
-            {submitting ? '登録中...' : '登録する 🎉'}
-          </button>
-          <button onClick={() => setStep('item')} className="mt-3 text-sm text-gray-400 hover:text-gray-600 text-center w-full">
-            ← 戻る
+            {submitting
+              ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              : <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>}
+            {submitting ? '登録中...' : '登録する'}
           </button>
         </div>
-      )}
 
-      {/* Done */}
-      {step === 'done' && result && (
-        <div className="flex flex-col items-center justify-center flex-1 px-4 text-center">
-          <div className="text-7xl mb-5 animate-bounce">🎉</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">登録完了！</h2>
-          <p className="text-gray-500 mb-1">{selectedStore?.name}</p>
-          <p className="text-gray-700 font-medium mb-6">{selectedItem?.name_ja} ¥{Number(price).toLocaleString()}</p>
-          <div className="inline-flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-full px-6 py-3 mb-8 shadow-sm">
-            <span className="text-2xl">⭐</span>
-            <span className="text-yellow-600 font-bold text-xl">+{result.points_awarded}pt</span>
-            <span className="text-yellow-500 text-sm">獲得！</span>
-          </div>
-          <div className="w-full space-y-3">
-            <button
-              onClick={() => { setStep('store'); setSelectedStore(null); setSelectedItem(null); setPrice(''); setItemQuery(''); setResult(null); }}
-              className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl"
-            >
-              続けて登録する
-            </button>
-            <button onClick={() => router.push('/')}
-              className="w-full py-3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-medium rounded-xl">
-              ホームへ戻る
-            </button>
-          </div>
+        <div className="shrink-0 px-4 pb-4">
+          <button onClick={() => setStep('item')} className="flex items-center gap-1.5 text-sm text-on-surface-variant/60">
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            商品を変更
+          </button>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  // ── Done ──
+  return (
+    <div className="flex flex-col items-center justify-center h-[calc(100dvh-64px)] bg-background px-6 text-center">
+      <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center shadow-2xl shadow-orange-900/50 mb-6">
+        <span className="material-symbols-outlined text-white text-[40px]" style={{ fontVariationSettings: "'FILL' 1" }}>celebration</span>
+      </div>
+      <h2 className="text-2xl font-extrabold text-on-background mb-1">登録完了！</h2>
+      <p className="text-sm text-on-surface-variant mb-1">{selectedStore?.name}</p>
+      <p className="text-sm text-on-background font-bold mb-6">{selectedItem?.name_ja} ¥{Number(price).toLocaleString()}</p>
+
+      <div className="flex items-center gap-2 bg-secondary/10 border border-secondary/20 rounded-full px-6 py-3 mb-8">
+        <span className="material-symbols-outlined text-secondary text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+        <span className="text-secondary font-extrabold text-xl">+{result?.points_awarded}pt</span>
+      </div>
+
+      <div className="w-full space-y-3">
+        <button
+          onClick={() => {
+            setStep('store');
+            setSelectedStore(null);
+            setSelectedItem(null);
+            setPrice('');
+            setItemQuery('');
+            setResult(null);
+          }}
+          className="w-full py-3.5 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-orange-900/40 active:scale-95 transition-transform"
+        >
+          続けて登録する
+        </button>
+        <button
+          onClick={() => router.push(`/${locale}`)}
+          className="w-full py-3.5 bg-surface-container text-on-surface-variant font-bold rounded-2xl border border-white/5"
+        >
+          ホームへ戻る
+        </button>
+      </div>
     </div>
   );
 }
