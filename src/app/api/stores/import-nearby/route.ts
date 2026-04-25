@@ -11,20 +11,19 @@ export async function POST(request: Request) {
 
   const supabase = createServiceClient();
 
-  // 24시간 이내에 같은 지역 임포트 기록이 있으면 스킵
+  // 24시간 이내에 같은 지역 임포트 기록 확인 (stores 테이블 직접 조회)
   const cacheAfter = new Date(Date.now() - CACHE_HOURS * 3600000).toISOString();
-  const { data: cached } = await supabase.rpc('get_nearby_stores', {
-    p_latitude: lat, p_longitude: lng, p_radius_meters: 500,
-  });
+  const { data: recent } = await supabase
+    .from('stores')
+    .select('id')
+    .gte('updated_at', cacheAfter)
+    .limit(1);
 
-  if (cached && cached.length > 0) {
-    const recentlyImported = (cached as { updated_at?: string }[]).some(
-      (s) => s.updated_at && s.updated_at > cacheAfter
-    );
-    if (recentlyImported) return Response.json({ imported: 0, cached: true });
+  if (recent && recent.length > 0) {
+    return Response.json({ imported: 0, cached: true });
   }
 
-  // Google Places 호출
+  // Google Places 호출 (language=ja로 일본어 이름 취득)
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
   const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=supermarket&language=ja&key=${apiKey}`;
 
@@ -36,6 +35,7 @@ export async function POST(request: Request) {
 
   if (!data.results?.length) return Response.json({ imported: 0 });
 
+  const now = new Date().toISOString();
   const stores = data.results.map((place) => ({
     id: place.place_id,
     google_place_id: place.place_id,
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     latitude: place.geometry.location.lat,
     longitude: place.geometry.location.lng,
     created_by: null,
-    updated_at: new Date().toISOString(),
+    updated_at: now,
   }));
 
   const { error } = await supabase.from('stores').upsert(stores, { onConflict: 'id' });
