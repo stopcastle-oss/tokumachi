@@ -16,9 +16,8 @@ export const BottomNav = () => {
   const locale = useLocale();
 
   const isActive = (path: string) => {
-    const full = `/${locale}${path}`;
     if (path === '') return pathname === `/${locale}` || pathname === '/';
-    return pathname.startsWith(full);
+    return pathname.startsWith(`/${locale}${path}`) || pathname.startsWith(path);
   };
 
   return (
