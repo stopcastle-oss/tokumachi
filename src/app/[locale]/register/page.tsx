@@ -223,7 +223,7 @@ export default function RegisterPage() {
   // ── Store step ──
   if (step === 'store') {
     return (
-      <div className="flex flex-col h-[calc(100dvh-64px)] bg-background">
+      <div className="flex flex-col h-[calc(100dvh-64px)] bg-background relative">
         {/* Step bar */}
         <div className="shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-white/5">
           {steps.map((label, i) => (
@@ -311,8 +311,12 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {/* CTA — 항상 표시 */}
-        <div className="shrink-0 px-4 pt-3 pb-safe border-t border-white/5 bg-background" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+        {/* store list 하단 여백 — fixed CTA 높이만큼 */}
+        <div className="h-20" />
+
+        {/* Fixed CTA */}
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 pt-3 bg-background border-t border-white/5 z-50"
+          style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
           {selectedStore ? (
             <button
               onClick={() => setStep('item')}
