@@ -11,6 +11,7 @@ interface StoreResult {
   address: string;
   lat: number;
   lng: number;
+  distance_meters?: number;
 }
 
 interface ItemResult {
@@ -115,33 +116,36 @@ export default function RegisterPage() {
       load();
     } else {
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`;
       script.async = true;
       script.onload = load;
       document.head.appendChild(script);
     }
   }, [initMap, placeUserMarker]);
 
-  const searchNearbyStores = useCallback((location: { lat: number; lng: number }) => {
-    if (!mapInstanceRef.current) return;
-    const svc = new google.maps.places.PlacesService(mapInstanceRef.current);
-    svc.nearbySearch(
-      { location, radius: 1500, type: 'supermarket' },
-      (results, status) => {
-        if (status !== google.maps.places.PlacesServiceStatus.OK || !results) return;
-        setNearbyStores(results.slice(0, 20).map(p => ({
-          place_id: p.place_id!,
-          name: p.name!,
-          address: p.vicinity || '',
-          lat: p.geometry!.location!.lat(),
-          lng: p.geometry!.location!.lng(),
-        })));
-      }
-    );
+  const searchNearbyStores = useCallback(async (location: { lat: number; lng: number }) => {
+    // import-nearby: 24시간 캐시 → Google Places는 필요할 때만 호출
+    await fetch('/api/stores/import-nearby', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lat: location.lat, lng: location.lng, radius: 1500 }),
+    });
+    // DB에서 조회
+    const res = await fetch(`/api/stores/nearby?lat=${location.lat}&lng=${location.lng}&radius=1500`);
+    if (!res.ok) return;
+    const data = await res.json() as { stores: Array<{ id: string; name_ja: string; address: string; latitude: number; longitude: number; distance_meters: number }> };
+    setNearbyStores((data.stores || []).map(s => ({
+      place_id: s.id,
+      name: s.name_ja,
+      address: s.address,
+      lat: s.latitude,
+      lng: s.longitude,
+      distance_meters: s.distance_meters,
+    })));
   }, []);
 
   useEffect(() => {
-    if (mapReady && userLocation) searchNearbyStores(userLocation);
+    if (mapReady && userLocation) { void searchNearbyStores(userLocation); }
   }, [mapReady, userLocation, searchNearbyStores]);
 
   // Update markers
@@ -291,9 +295,16 @@ export default function RegisterPage() {
                     <p className="text-sm font-bold text-on-background truncate">{store.name}</p>
                     <p className="text-xs text-on-surface-variant/60 truncate mt-0.5">{store.address}</p>
                   </div>
-                  {selectedStore?.place_id === store.place_id && (
-                    <span className="material-symbols-outlined text-primary text-[20px] shrink-0 ml-2">check_circle</span>
-                  )}
+                  <div className="ml-2 flex flex-col items-end shrink-0">
+                    {store.distance_meters !== undefined && (
+                      <p className="text-xs font-bold text-primary">
+                        {store.distance_meters < 1000 ? `${Math.round(store.distance_meters)}m` : `${(store.distance_meters/1000).toFixed(1)}km`}
+                      </p>
+                    )}
+                    {selectedStore?.place_id === store.place_id && (
+                      <span className="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                    )}
+                  </div>
                 </button>
               ))}
             </>
