@@ -311,19 +311,24 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {/* CTA */}
-        {selectedStore && (
-          <div className="shrink-0 px-4 py-3 border-t border-white/5 bg-background">
-            <button
-              onClick={() => setStep('item')}
-              className="w-full py-3.5 bg-primary text-white font-bold rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-900/40 active:scale-95 transition-transform"
-            >
-              <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>store</span>
-              {selectedStore.name} で登録する
-              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-            </button>
-          </div>
-        )}
+        {/* CTA — 항상 표시 */}
+        <div className="shrink-0 px-4 py-3 border-t border-white/5 bg-background">
+          <button
+            onClick={() => selectedStore && setStep('item')}
+            disabled={!selectedStore}
+            className={`w-full py-3.5 font-bold rounded-2xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
+              selectedStore
+                ? 'bg-primary text-white shadow-lg shadow-orange-900/40'
+                : 'bg-surface-container text-on-surface-variant/40 cursor-default'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+              {selectedStore ? 'store' : 'touch_app'}
+            </span>
+            {selectedStore ? `${selectedStore.name} で登録する` : 'マートを選択してください'}
+            {selectedStore && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
+          </button>
+        </div>
       </div>
     );
   }
