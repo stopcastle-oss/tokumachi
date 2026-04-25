@@ -200,7 +200,7 @@ export default function Home() {
                 </Link>
               </div>
             )
-            : feed.map((entry: TopLikedEntry) => (
+            : feed.slice(0, 5).map((entry: TopLikedEntry) => (
               <FeedCard key={entry.id} entry={entry} locale={locale} />
             ))
           }
