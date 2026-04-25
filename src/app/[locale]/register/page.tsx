@@ -241,8 +241,8 @@ export default function RegisterPage() {
           ))}
         </div>
 
-        {/* Map 55% */}
-        <div className="relative" style={{ height: '52%' }}>
+        {/* Map 30% */}
+        <div className="relative" style={{ height: '30%' }}>
           <div ref={mapRef} className="w-full h-full" />
           {/* Recenter button */}
           {userLocation && (
