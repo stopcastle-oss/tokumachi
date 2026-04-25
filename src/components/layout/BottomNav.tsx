@@ -5,11 +5,10 @@ import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 
 const navItems = [
-  { key: 'home',      icon: 'home',       label: 'ホーム',       path: '' },
-  { key: 'search',    icon: 'search',     label: '検索',         path: '/search' },
-  { key: 'register',  icon: 'add_circle', label: '登録',         path: '/register' },
-  { key: 'map',       icon: 'map',        label: 'マップ',       path: '/map' },
-  { key: 'profile',   icon: 'person',     label: 'マイページ',   path: '/profile' },
+  { key: 'home',    icon: 'home',   label: 'ホーム',     path: '' },
+  { key: 'search',  icon: 'search', label: '検索',       path: '/search' },
+  { key: 'map',     icon: 'map',    label: 'マップ',     path: '/map' },
+  { key: 'profile', icon: 'person', label: 'マイページ', path: '/profile' },
 ];
 
 export const BottomNav = () => {
