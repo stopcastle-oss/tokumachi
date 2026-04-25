@@ -39,6 +39,7 @@ export default function StoreMap({ stores, center, searchCenter, onStoreSelect, 
         zoom: 15,
         disableDefaultUI: true,
         zoomControl: true,
+        gestureHandling: 'greedy',
         styles: [
           { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
         ],

@@ -68,6 +68,7 @@ export default function RegisterPage() {
       zoom: 15,
       disableDefaultUI: true,
       zoomControl: false,
+      gestureHandling: 'greedy',
       styles: DARK_MAP_STYLES,
     });
     mapInstanceRef.current = map;
