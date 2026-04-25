@@ -32,6 +32,23 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(h / 24)}日前`;
 }
 
+function fmtHistoryDate(dateStr: string) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const isToday = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  return isToday
+    ? d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+}
+
+function fmtConfirmTime(createdAt: string) {
+  const diff = new Date(createdAt).getTime() + 24 * 3600000 - Date.now();
+  if (diff <= 0) return '確定処理中';
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  return h > 0 ? `約${h}時間後に確定` : `約${m}分後に確定`;
+}
+
 function TrustBadge({ score }: { score: number | null }) {
   if (score === null) return <span className="text-xs text-on-surface-variant/50">評価なし</span>;
   const color = score >= 80 ? 'text-tertiary bg-tertiary/10' : score >= 50 ? 'text-secondary bg-secondary/10' : 'text-error bg-error/10';
@@ -131,8 +148,12 @@ export default function EntryDetailPage() {
       body: JSON.stringify({ price }),
     });
     if (res.ok) {
-      const data = await res.json();
-      router.replace(`/${locale}/entries/${data.new_entry_id}`);
+      const data = await res.json() as { mode: string; new_entry_id?: string };
+      if (data.mode === 'proposed') {
+        await load();
+      } else if (data.new_entry_id) {
+        router.replace(`/${locale}/entries/${data.new_entry_id}`);
+      }
     }
     setPriceSubmitting(false);
     setEditingPrice(false);
@@ -149,8 +170,6 @@ export default function EntryDetailPage() {
   if (!entry) return null;
 
   const emoji = getEmoji(entry.item_name, entry.item_category);
-  const maxPrice = Math.max(...history.map((h) => h.price), 1);
-  const minPrice = Math.min(...history.map((h) => h.price));
 
   return (
     <div className="min-h-screen bg-background pb-8">
@@ -192,113 +211,103 @@ export default function EntryDetailPage() {
 
       {/* Current Price */}
       <div className="mx-5 mt-3 bg-surface-container rounded-2xl px-4 py-4 border border-white/5">
-        <p className="text-xs text-on-surface-variant/60 font-medium mb-2">現在の価格</p>
-        {editingPrice && entry.user_vote === false && (
-          <div className="mb-2 flex items-center gap-1.5 text-xs text-error font-medium">
-            <span className="material-symbols-outlined text-[14px]">edit_note</span>
-            正しい価格を入力して修正してください
-          </div>
-        )}
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-on-surface-variant/60 font-medium">現在の価格</p>
+          {entry.pending_update && (
+            <span className="flex items-center gap-1 text-[11px] font-bold text-secondary bg-secondary/10 px-2 py-0.5 rounded-full">
+              <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>update</span>
+              新しい価格更新中
+            </span>
+          )}
+        </div>
+
         {editingPrice ? (
           <div className="flex items-center gap-3">
-            <div className="flex-1 relative pb-5">
-              <input
-                type="number"
-                value={newPrice}
-                onChange={(e) => setNewPrice(e.target.value)}
-                placeholder={String(entry.price)}
-                autoFocus
+            <div className="flex-1 relative">
+              <input type="number" value={newPrice} onChange={(e) => setNewPrice(e.target.value)}
+                placeholder={String(entry.price)} autoFocus
                 className={`w-full bg-surface-container-high border rounded-xl px-4 py-2.5 text-on-background text-xl font-bold focus:outline-none transition-colors ${
-                  newPrice && Number(newPrice) === entry.price
-                    ? 'border-error/60 focus:border-error'
-                    : 'border-primary/40 focus:border-primary'
-                }`}
+                  newPrice && Number(newPrice) === entry.price ? 'border-error/60' : 'border-primary/40 focus:border-primary'}`}
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-sm">円</span>
             </div>
-            {newPrice && Number(newPrice) === entry.price && (
-              <p className="absolute -bottom-5 left-0 text-[10px] text-error">現在と同じ価格です</p>
-            )}
-            <button
-              onClick={handlePriceSubmit}
-              disabled={priceSubmitting || !newPrice || Number(newPrice) === entry.price}
-              className="bg-primary text-white px-4 py-2.5 rounded-xl font-bold text-sm disabled:opacity-50 flex items-center gap-1.5"
-            >
-              {priceSubmitting ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <span className="material-symbols-outlined text-[16px]">check</span>
-              )}
+            <button onClick={handlePriceSubmit} disabled={priceSubmitting || !newPrice || Number(newPrice) === entry.price}
+              className="bg-primary text-white px-4 py-2.5 rounded-xl font-bold text-sm disabled:opacity-50 flex items-center gap-1.5">
+              {priceSubmitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <span className="material-symbols-outlined text-[16px]">check</span>}
               更新
             </button>
-            <button
-              onClick={() => { setEditingPrice(false); setNewPrice(''); }}
-              className="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center"
-            >
+            <button onClick={() => { setEditingPrice(false); setNewPrice(''); }} className="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center">
               <span className="material-symbols-outlined text-on-surface-variant text-[20px]">close</span>
             </button>
           </div>
         ) : (
-          <div className="flex items-end justify-between">
-            <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-extrabold text-primary">{entry.price.toLocaleString()}</span>
-              <span className="text-lg text-on-surface-variant font-bold">円</span>
+          <>
+            <div className="flex items-end justify-between">
+              <div className="flex items-end gap-3">
+                {entry.pending_update ? (
+                  <>
+                    <div className="flex items-baseline gap-0.5 opacity-40">
+                      <span className="text-2xl font-extrabold text-on-surface-variant line-through">{entry.price.toLocaleString()}</span>
+                      <span className="text-sm text-on-surface-variant font-bold">円</span>
+                    </div>
+                    <span className="material-symbols-outlined text-secondary text-[20px] mb-1">arrow_forward</span>
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="text-4xl font-extrabold text-secondary">{entry.pending_update.price.toLocaleString()}</span>
+                      <span className="text-lg text-secondary/70 font-bold">円</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-extrabold text-primary">{entry.price.toLocaleString()}</span>
+                    <span className="text-lg text-on-surface-variant font-bold">円</span>
+                  </div>
+                )}
+              </div>
+              {user && !entry.pending_update && (() => {
+                const ageMs = Date.now() - new Date(entry.created_at).getTime();
+                const withinOneHour = ageMs < 60 * 60 * 1000;
+                const canDirectEdit = entry.total_verifications === 0 && withinOneHour;
+                const canPropose = !withinOneHour && entry.correct_count > 0;
+                if (canDirectEdit) return (
+                  <button onClick={() => { setEditingPrice(true); setNewPrice(String(entry.price)); }} className="flex items-center gap-1.5 bg-surface-container-high px-3 py-2 rounded-xl text-xs font-bold text-on-surface-variant">
+                    <span className="material-symbols-outlined text-[16px]">edit</span>直接修正
+                  </button>
+                );
+                if (canPropose) return (
+                  <button onClick={() => { setEditingPrice(true); setNewPrice(''); }} className="flex items-center gap-1.5 bg-secondary/10 px-3 py-2 rounded-xl text-xs font-bold text-secondary">
+                    <span className="material-symbols-outlined text-[16px]">price_change</span>価格を更新提案
+                  </button>
+                );
+                return null;
+              })()}
             </div>
-            {user && (() => {
-              const withinOneHour = Date.now() - new Date(entry.created_at).getTime() < 60 * 60 * 1000;
-              const canEdit = entry.total_verifications === 0 && withinOneHour;
-              const lockReason = entry.total_verifications > 0 ? '評価済み' : '1時間経過';
-              return canEdit ? (
-                <button
-                  onClick={() => { setEditingPrice(true); setNewPrice(String(entry.price)); }}
-                  className="flex items-center gap-1.5 bg-surface-container-high px-3 py-2 rounded-xl text-xs font-bold text-on-surface-variant hover:text-on-background transition-colors"
-                >
-                  <span className="material-symbols-outlined text-[16px]">edit</span>
-                  価格を修正
-                </button>
-              ) : (
-                <span className="flex items-center gap-1 text-[10px] text-on-surface-variant/40">
-                  <span className="material-symbols-outlined text-[12px]">lock</span>
-                  {lockReason}
+            {entry.pending_update && (
+              <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
+                <span className="text-[11px] text-on-surface-variant/50 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[13px]">schedule</span>
+                  {fmtConfirmTime(entry.pending_update.created_at)}
                 </span>
-              );
-            })()}
-          </div>
+                <span className="text-[11px] text-on-surface-variant/40">反対多数でロールバック</span>
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* Price Trend */}
-      {history.length > 1 && (
+      {/* Price History */}
+      {history.length > 0 && (
         <div className="mx-5 mt-3 bg-surface-container rounded-2xl px-4 py-4 border border-white/5">
-          <p className="text-xs text-on-surface-variant/60 font-medium mb-4">価格動向</p>
-          {/* Bar chart */}
-          <div className="flex items-end gap-2 h-16 mb-3">
-            {history.slice(0, 8).reverse().map((h, i) => {
-              const pct = maxPrice === minPrice ? 60 : 20 + ((h.price - minPrice) / (maxPrice - minPrice)) * 60;
-              const isLatest = i === history.slice(0, 8).reverse().length - 1;
-              return (
-                <div key={h.id} className="flex-1 flex flex-col items-center gap-1">
-                  <div
-                    className={`w-full rounded-t-md transition-all ${isLatest ? 'bg-primary' : 'bg-surface-container-high'}`}
-                    style={{ height: `${pct}%` }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          {/* Price history list */}
-          <div className="space-y-2 mt-4 max-h-40 overflow-y-auto no-scrollbar">
+          <p className="text-xs text-on-surface-variant/60 font-medium mb-3">価格変更履歴</p>
+          <div className="space-y-2">
             {history.map((h, i) => (
               <div key={h.id} className="flex items-center justify-between">
-                <span className="text-xs text-on-surface-variant/60">{new Date(h.created_at).toLocaleDateString('ja-JP')}</span>
                 <div className="flex items-center gap-2">
-                  {i === 0 && (
-                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">最新</span>
-                  )}
-                  <span className={`text-sm font-bold ${i === 0 ? 'text-primary' : 'text-on-background'}`}>
-                    {h.price.toLocaleString()}円
-                  </span>
+                  {i === 0 && <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">最新</span>}
+                  <span className="text-xs text-on-surface-variant/60">{fmtHistoryDate(h.created_at)}</span>
                 </div>
+                <span className={`text-sm font-bold ${i === 0 ? 'text-primary' : 'text-on-surface-variant'}`}>
+                  ¥{h.price.toLocaleString()}
+                </span>
               </div>
             ))}
           </div>

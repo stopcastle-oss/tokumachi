@@ -118,6 +118,7 @@ export interface EntryDetail {
   total_verifications: number;
   trust_score: number;
   user_vote: boolean | null;
+  pending_update: { id: string; price: number; created_at: string } | null;
 }
 
 export interface PriceHistory {

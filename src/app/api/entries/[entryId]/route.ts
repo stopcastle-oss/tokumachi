@@ -60,15 +60,43 @@ export async function GET(
     if (myVote) userVote = myVote.is_correct;
   }
 
-  // Price history for same store + item
+  // Price history — all statuses, max 3
   const { data: history } = await supabase
     .from('price_entries')
     .select('id, price, created_at')
     .eq('store_id', entry.store_id)
     .eq('item_id', entry.item_id)
-    .eq('status', 'active')
     .order('created_at', { ascending: false })
-    .limit(10);
+    .limit(3);
+
+  // Pending update + lazy confirm/rollback
+  let pendingUpdate: { id: string; price: number; created_at: string } | null = null;
+
+  if (entry.status === 'active') {
+    const { data: pending } = await supabase
+      .from('price_entries')
+      .select('id, price, created_at')
+      .eq('original_entry_id', entryId)
+      .eq('status', 'pending_update')
+      .maybeSingle();
+
+    if (pending) {
+      const ageMs = Date.now() - new Date(pending.created_at).getTime();
+      const { data: pVerifs } = await supabase
+        .from('price_verifications').select('is_correct').eq('price_entry_id', pending.id);
+      const pTotal = (pVerifs ?? []).length;
+      const pWrong = (pVerifs ?? []).filter((v: { is_correct: boolean }) => !v.is_correct).length;
+
+      if (pTotal >= 3 && pWrong / pTotal > 0.5) {
+        await supabase.from('price_entries').update({ status: 'archived' }).eq('id', pending.id);
+      } else if (ageMs >= 24 * 60 * 60 * 1000) {
+        await supabase.from('price_entries').update({ status: 'active' }).eq('id', pending.id);
+        await supabase.from('price_entries').update({ status: 'archived' }).eq('id', entryId);
+      } else {
+        pendingUpdate = pending as { id: string; price: number; created_at: string };
+      }
+    }
+  }
 
   const item = Array.isArray(entry.items)
     ? (entry.items[0] as { name_ja: string; category: string; unit: string } | undefined)
@@ -90,6 +118,7 @@ export async function GET(
       total_verifications: totalVerifications,
       trust_score: trustScore,
       user_vote: userVote,
+      pending_update: pendingUpdate,
     },
     price_history: history || [],
   });
