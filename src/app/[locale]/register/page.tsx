@@ -313,21 +313,21 @@ export default function RegisterPage() {
                           <div className="w-11 h-11 rounded-full bg-primary/20 flex items-center justify-center group-active:scale-95 transition-transform">
                             <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>add_shopping_cart</span>
                           </div>
-                          <span className="text-xs text-on-surface-variant font-medium">상품등록</span>
+                          <span className="text-xs text-on-surface-variant font-medium">商品登録</span>
                         </button>
 
                         <button className="flex flex-col items-center gap-1.5 group">
                           <div className="w-11 h-11 rounded-full bg-sky-500/10 flex items-center justify-center group-active:scale-95 transition-transform">
                             <span className="material-symbols-outlined text-sky-400 text-[20px]">chat_bubble</span>
                           </div>
-                          <span className="text-xs text-on-surface-variant font-medium">코멘트</span>
+                          <span className="text-xs text-on-surface-variant font-medium">コメント</span>
                         </button>
 
                         <button className="flex flex-col items-center gap-1.5 group">
                           <div className="w-11 h-11 rounded-full bg-emerald-500/10 flex items-center justify-center group-active:scale-95 transition-transform">
                             <span className="material-symbols-outlined text-emerald-400 text-[20px]">info</span>
                           </div>
-                          <span className="text-xs text-on-surface-variant font-medium">마트정보</span>
+                          <span className="text-xs text-on-surface-variant font-medium">店舗情報</span>
                         </button>
                       </div>
                     )}
@@ -338,18 +338,8 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {/* store list 하단 여백 — fixed CTA 높이만큼 */}
-        <div className="h-32" />
 
         {/* Fixed CTA — BottomNav(약 64px) 위에 표시 */}
-        {!selectedStore && (
-          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 z-40">
-            <div className="w-full py-3.5 bg-surface-container rounded-2xl text-sm flex items-center justify-center gap-2 text-on-surface-variant/40">
-              <span className="material-symbols-outlined text-[18px]">touch_app</span>
-              マートを選択してください
-            </div>
-          </div>
-        )}
       </div>
     );
   }
