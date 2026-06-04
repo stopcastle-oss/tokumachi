@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import StorePopup from '@/components/map/StorePopup';
 import { useLocation } from '@/hooks/useLocation';
 import { StoreWithDistance } from '@/types';
@@ -27,6 +28,7 @@ function formatDistance(meters: number) {
 
 export default function MapPage() {
   const t = useTranslations();
+  const locale = useLocale();
   const { coords: savedCoords, isLoading: locationLoading } = useLocation();
   const locationInitialized = useRef(false);
   const [center, setCenter] = useState(DEFAULT_CENTER);
@@ -154,28 +156,69 @@ export default function MapPage() {
               </p>
               <p className="text-xs text-gray-400 dark:text-gray-500">地図をタップして場所を変更</p>
             </div>
-            {stores.map(store => (
-              <button
-                key={store.id}
-                onClick={() => setSelectedStore(store)}
-                className={`w-full flex items-center px-4 py-3 border-b border-gray-100 dark:border-gray-800 text-left transition-colors ${
-                  selectedStore?.id === store.id
-                    ? 'bg-blue-50 dark:bg-blue-900/20'
-                    : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{store.name_ja}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{store.address}</p>
+            {stores.map(store => {
+              const isSelected = selectedStore?.id === store.id;
+              return (
+                <div
+                  key={store.id}
+                  className={`border-b border-gray-100 dark:border-gray-800 transition-colors ${
+                    isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                  }`}
+                >
+                  <button
+                    onClick={() => setSelectedStore(isSelected ? null : store)}
+                    className={`w-full flex items-center px-4 py-3 text-left transition-colors ${
+                      !isSelected ? 'hover:bg-gray-50 dark:hover:bg-gray-800' : ''
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{store.name_ja}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{store.address}</p>
+                    </div>
+                    <div className="ml-3 flex flex-col items-end shrink-0">
+                      <p className="text-xs font-bold text-primary">{formatDistance(store.distance_meters)}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                        {store.entry_count > 0 ? `${store.entry_count}件の情報` : '情報なし'}
+                      </p>
+                    </div>
+                  </button>
+
+                  {isSelected && (
+                    <div className="flex justify-around items-center px-4 py-3 border-t border-blue-100 dark:border-blue-800/40">
+                      <Link
+                        href={`/${locale}/register?store_id=${store.id}`}
+                        className="flex flex-col items-center gap-1.5 group"
+                      >
+                        <div className="w-11 h-11 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center group-active:scale-95 transition-transform">
+                          <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                          </svg>
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">상품등록</span>
+                      </Link>
+
+                      <button className="flex flex-col items-center gap-1.5 group">
+                        <div className="w-11 h-11 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center group-active:scale-95 transition-transform">
+                          <svg className="w-5 h-5 text-sky-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.84L3 20l1.09-3.27C3.4 15.56 3 13.82 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">코멘트</span>
+                      </button>
+
+                      <button className="flex flex-col items-center gap-1.5 group">
+                        <div className="w-11 h-11 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center group-active:scale-95 transition-transform">
+                          <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">마트정보</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="ml-3 flex flex-col items-end shrink-0">
-                  <p className="text-xs font-bold text-primary">{formatDistance(store.distance_meters)}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                    {store.entry_count > 0 ? `${store.entry_count}件の情報` : '情報なし'}
-                  </p>
-                </div>
-              </button>
-            ))}
+              );
+            })}
           </>
         )}
       </div>
