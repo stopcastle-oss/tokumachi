@@ -277,36 +277,63 @@ export default function RegisterPage() {
               <div className="px-4 py-2 bg-surface-container border-b border-white/5 sticky top-0 z-10">
                 <p className="text-xs font-bold text-on-surface-variant">近くのスーパー {nearbyStores.length}件</p>
               </div>
-              {nearbyStores.map(store => (
-                <button
-                  key={store.place_id}
-                  onClick={() => {
-                    setSelectedStore(store);
-                    mapInstanceRef.current?.panTo({ lat: store.lat, lng: store.lng });
-                  }}
-                  className={`w-full flex items-center px-4 py-3.5 border-b border-white/5 text-left transition-colors ${
-                    selectedStore?.place_id === store.place_id ? 'bg-primary/10' : 'active:bg-surface-container'
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-xl bg-surface-container flex items-center justify-center shrink-0 mr-3">
-                    <span className="material-symbols-outlined text-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>store</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-on-background truncate">{store.name}</p>
-                    <p className="text-xs text-on-surface-variant/60 truncate mt-0.5">{store.address}</p>
-                  </div>
-                  <div className="ml-2 flex flex-col items-end shrink-0">
-                    {store.distance_meters !== undefined && (
-                      <p className="text-xs font-bold text-primary">
-                        {store.distance_meters < 1000 ? `${Math.round(store.distance_meters)}m` : `${(store.distance_meters/1000).toFixed(1)}km`}
-                      </p>
+              {nearbyStores.map(store => {
+                const isSelected = selectedStore?.place_id === store.place_id;
+                return (
+                  <div key={store.place_id} className={`border-b border-white/5 transition-colors ${isSelected ? 'bg-primary/10' : ''}`}>
+                    <button
+                      onClick={() => {
+                        setSelectedStore(isSelected ? null : store);
+                        mapInstanceRef.current?.panTo({ lat: store.lat, lng: store.lng });
+                      }}
+                      className={`w-full flex items-center px-4 py-3.5 text-left transition-colors ${!isSelected ? 'active:bg-surface-container' : ''}`}
+                    >
+                      <div className="w-8 h-8 rounded-xl bg-surface-container flex items-center justify-center shrink-0 mr-3">
+                        <span className="material-symbols-outlined text-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>store</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-on-background truncate">{store.name}</p>
+                        <p className="text-xs text-on-surface-variant/60 truncate mt-0.5">{store.address}</p>
+                      </div>
+                      <div className="ml-2 flex flex-col items-end shrink-0">
+                        {store.distance_meters !== undefined && (
+                          <p className="text-xs font-bold text-primary">
+                            {store.distance_meters < 1000 ? `${Math.round(store.distance_meters)}m` : `${(store.distance_meters/1000).toFixed(1)}km`}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+
+                    {isSelected && (
+                      <div className="flex justify-around items-center px-4 py-3 border-t border-primary/10">
+                        <button
+                          onClick={() => setStep('item')}
+                          className="flex flex-col items-center gap-1.5 group"
+                        >
+                          <div className="w-11 h-11 rounded-full bg-primary/20 flex items-center justify-center group-active:scale-95 transition-transform">
+                            <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>add_shopping_cart</span>
+                          </div>
+                          <span className="text-xs text-on-surface-variant font-medium">상품등록</span>
+                        </button>
+
+                        <button className="flex flex-col items-center gap-1.5 group">
+                          <div className="w-11 h-11 rounded-full bg-sky-500/10 flex items-center justify-center group-active:scale-95 transition-transform">
+                            <span className="material-symbols-outlined text-sky-400 text-[20px]">chat_bubble</span>
+                          </div>
+                          <span className="text-xs text-on-surface-variant font-medium">코멘트</span>
+                        </button>
+
+                        <button className="flex flex-col items-center gap-1.5 group">
+                          <div className="w-11 h-11 rounded-full bg-emerald-500/10 flex items-center justify-center group-active:scale-95 transition-transform">
+                            <span className="material-symbols-outlined text-emerald-400 text-[20px]">info</span>
+                          </div>
+                          <span className="text-xs text-on-surface-variant font-medium">마트정보</span>
+                        </button>
+                      </div>
                     )}
-                    {selectedStore?.place_id === store.place_id && (
-                      <span className="material-symbols-outlined text-primary text-[18px]">check_circle</span>
-                    )}
                   </div>
-                </button>
-              ))}
+                );
+              })}
             </>
           )}
         </div>
@@ -315,23 +342,14 @@ export default function RegisterPage() {
         <div className="h-32" />
 
         {/* Fixed CTA — BottomNav(약 64px) 위에 표시 */}
-        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 z-40">
-          {selectedStore ? (
-            <button
-              onClick={() => setStep('item')}
-              className="w-full py-3.5 bg-primary text-white font-bold rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-900/40 active:scale-95 transition-transform"
-            >
-              <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>store</span>
-              {selectedStore.name} で登録する
-              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-            </button>
-          ) : (
+        {!selectedStore && (
+          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 z-40">
             <div className="w-full py-3.5 bg-surface-container rounded-2xl text-sm flex items-center justify-center gap-2 text-on-surface-variant/40">
               <span className="material-symbols-outlined text-[18px]">touch_app</span>
               マートを選択してください
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   }
