@@ -30,6 +30,9 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+      <div className="mt-8 text-center text-xs text-gray-400">
+        v0.1.4 · 2026-06-04
+      </div>
     </div>
   );
 }
