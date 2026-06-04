@@ -21,6 +21,7 @@ interface PriceEntry {
 interface StoreDetail {
   entry_count: number;
   entries: PriceEntry[];
+  phone_number: string | null;
 }
 
 interface StoreDetailSheetProps {
@@ -46,7 +47,7 @@ export default function StoreDetailSheet({ store, initialTab, onClose }: StoreDe
     if (tab !== 'info') return;
     fetch(`/api/stores/${store.place_id}`)
       .then(r => r.json())
-      .then(d => setDetail({ entry_count: d.entry_count, entries: d.entries || [] }))
+      .then(d => setDetail({ entry_count: d.entry_count, entries: d.entries || [], phone_number: d.store?.phone_number ?? null }))
       .catch(() => {});
   }, [tab, store.place_id]);
 
@@ -149,6 +150,21 @@ export default function StoreDetailSheet({ store, initialTab, onClose }: StoreDe
                     </div>
                   </div>
                 )}
+                <div className="flex items-start gap-3">
+                  <span className="material-symbols-outlined text-primary text-[18px] mt-0.5">call</span>
+                  <div>
+                    <p className="text-xs text-on-surface-variant/60 mb-0.5">電話番号</p>
+                    {detail?.phone_number ? (
+                      <a href={`tel:${detail.phone_number}`} className="text-sm font-bold text-primary">
+                        {detail.phone_number}
+                      </a>
+                    ) : (
+                      <p className="text-sm text-on-surface-variant/40">
+                        {detail === null ? '読み込み中...' : '情報なし'}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* 가격 정보 */}
