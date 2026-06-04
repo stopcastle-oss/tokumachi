@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
+import StoreDetailSheet from '@/components/store/StoreDetailSheet';
 
 interface StoreResult {
   place_id: string;
@@ -61,6 +62,8 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ points_awarded: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sheetTab, setSheetTab] = useState<'comment' | 'info'>('info');
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const initMap = useCallback((center: { lat: number; lng: number }) => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -316,14 +319,20 @@ export default function RegisterPage() {
                           <span className="text-xs text-on-surface-variant font-medium">商品登録</span>
                         </button>
 
-                        <button className="flex flex-col items-center gap-1.5 group">
+                        <button
+                          onClick={() => { setSheetTab('comment'); setSheetOpen(true); }}
+                          className="flex flex-col items-center gap-1.5 group"
+                        >
                           <div className="w-11 h-11 rounded-full bg-sky-500/10 flex items-center justify-center group-active:scale-95 transition-transform">
                             <span className="material-symbols-outlined text-sky-400 text-[20px]">chat_bubble</span>
                           </div>
                           <span className="text-xs text-on-surface-variant font-medium">コメント</span>
                         </button>
 
-                        <button className="flex flex-col items-center gap-1.5 group">
+                        <button
+                          onClick={() => { setSheetTab('info'); setSheetOpen(true); }}
+                          className="flex flex-col items-center gap-1.5 group"
+                        >
                           <div className="w-11 h-11 rounded-full bg-emerald-500/10 flex items-center justify-center group-active:scale-95 transition-transform">
                             <span className="material-symbols-outlined text-emerald-400 text-[20px]">info</span>
                           </div>
@@ -340,6 +349,13 @@ export default function RegisterPage() {
 
 
         {/* Fixed CTA — BottomNav(약 64px) 위에 표시 */}
+      {sheetOpen && selectedStore && (
+        <StoreDetailSheet
+          store={selectedStore}
+          initialTab={sheetTab}
+          onClose={() => setSheetOpen(false)}
+        />
+      )}
       </div>
     );
   }
